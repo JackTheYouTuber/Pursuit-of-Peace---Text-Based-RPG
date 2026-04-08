@@ -98,3 +98,55 @@ Several files used Windows-style CRLF (`\r\n`) line endings while the rest of th
 
 **Fix:**  
 Ran `sed -i 's/\r//'` across all `.py` files under `app/` and all `.json` files under `data/ui/`. All files now use LF uniformly.
+
+---
+
+### BUG-007 — Syntax Error in `view_builder._action_label()` (Critical)
+
+**File:** `app/components/game_engine/view_builder.py`  
+**Severity:** Critical — game would not start  
+
+**Description:**  
+The `return` statement inside `_action_label()` was incorrectly indented, placing it outside the method body. This caused a `SyntaxError` on import, preventing the game from launching.
+
+**Fix:**  
+Indented the `return` statement correctly inside the method.
+
+---
+
+### BUG-008 — Relative Import Errors in `ui/components/complex/` (Critical)
+
+**Files:** `location_panel.py`, `combat_panel.py`, `inventory_panel.py`, `lore_panel.py`, `player_panel.py`  
+**Severity:** Critical — `ModuleNotFoundError` on startup  
+
+**Description:**  
+The complex panels used `.basic` relative imports (e.g. `from .basic.text_display import ...`) but `basic` is a sibling directory, not a child. This caused `ModuleNotFoundError: No module named 'app.ui.components.complex.basic'`.
+
+**Fix:**  
+Changed all imports to `..basic` (e.g. `from ..basic.text_display import TextDisplay`).
+
+---
+
+### BUG-009 — UI Callbacks Never Wired (High)
+
+**File:** `app/app.py`  
+**Severity:** High — buttons in city, dungeon, combat, inventory did nothing  
+
+**Description:**  
+`UIAssembler` was created with an empty `callbacks` dict, and later the `_callbacks` attribute was replaced entirely. The `ComponentBuilder` held a reference to the original empty dict, so no callbacks were ever registered. All UI actions were silently ignored.
+
+**Fix:**  
+Replaced the assignment with `self._assembler._callbacks.update({...})` so the existing dict is mutated, updating the reference held by the builder.
+
+---
+
+### BUG-010 — Orphan File `view_builder.py.py` (Low)
+
+**File:** `app/components/game_engine/view_builder.py.py`  
+**Severity:** Low — could cause import confusion  
+
+**Description:**  
+A stray file with double `.py.py` extension existed in the component directory. It was not a valid module and could have been discovered by Python depending on `sys.path`.
+
+**Fix:**  
+Deleted the file.

@@ -1,5 +1,20 @@
 # Pursuit of Peace — Changelog
 
+## v0.7.3 (2026-04-09)
+
+### Bug Fixes
+
+- **Syntax error in `view_builder.py`** – moved misplaced `return` statement inside `_action_label()` method.
+- **Import errors in UI components** – corrected relative imports in `complex/` panels to use `..basic` instead of `.basic`.
+- **UI callbacks not wired** – `UIAssembler` now receives callbacks via `update()` instead of private attribute; actions now work.
+- **Removed orphan file** `view_builder.py.py` from `components/game_engine/`.
+
+### Internal
+
+- Version bumped to 0.7.3.
+
+---
+
 ## v0.7 (2026-04-08)
 
 ### New Features
