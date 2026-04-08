@@ -4376,3 +4376,653 @@ STATUS: Game ready for 1.0 release. Complete documentation.
       FILES MODIFIED:
       - build_scripts/ (NEW)
       - README.md (installation instructions)
+
+================================================================================
+================================================================================
+From here, all are uncertain
+================================================================================
+================================================================================
+
+
+================================================================================
+TIER 41 — SANDBOX & CREATIVE MODE [v5.1] 
+================================================================================
+
+STATUS: Players can bypass all restrictions and play as god.
+
+[41.1] Creative Mode (Unlimited Resources)
+      
+      WHAT:
+      Toggle in settings: “Creative Mode”. When enabled, player has infinite gold,
+      all items unlocked, invincible, one-hit kill. For testing or pure fun.
+      
+      HOW:
+      - Profile flag: creative_mode = true
+      - Cannot be turned off once enabled (or can, but player chooses)
+      - Creative profiles do not appear on leaderboards (optional)
+      - No achievements earned in creative mode
+      - Player can still do everything, just no “legit” bragging rights
+      
+      WHY:
+      Some players just want to build, experiment, or skip grind. Let them.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/creative_mode.py (NEW)
+
+---
+
+[41.2] Console Commands (Full Cheat Access)
+      
+      WHAT:
+      Developer console accessible with tilde (~). Type any command to modify
+      game state instantly. No limits.
+      
+      HOW:
+      - Commands:
+        /give [item_id] [quantity]
+        /set gold [amount]
+        /set level [number]
+        /spawn [enemy_id]
+        /kill
+        /unlock all (unlocks all achievements, bestiary, collections)
+        /teleport [location_id]
+        /time set [hour]
+      - Full command list in help
+      - Console remembers history
+      - No validation – player can break game intentionally
+      
+      WHY:
+      Console commands give ultimate power. Players fix bugs, test content,
+      or just have fun breaking things.
+      
+      FILES MODIFIED:
+      - app/ui/developer/console.py (NEW)
+
+---
+
+[41.3] Scenario Editor (Create Your Own Starting Conditions)
+      
+      WHAT:
+      GUI to create custom starting scenarios: “Start at level 50 with 100k gold
+      and cursed sword.” Save scenario as JSON, share with friends.
+      
+      HOW:
+      - Scenario builder panel
+      - Set starting: gold, level, inventory items, equipped gear, buffs, location
+      - Set world state: year, season, faction control, unlocked areas
+      - Export as .scenario file
+      - Load scenario on new game
+      
+      WHY:
+      Players become game masters. Create challenge runs (“Start with no gear,
+      surrounded by dragons”) or roleplay setups.
+      
+      FILES MODIFIED:
+      - app/ui/developer/scenario_editor.py (NEW)
+      - data/scenarios/*.json
+
+================================================================================
+TIER 42 — PLAYER-DRIVEN CONTENT PIPELINE [v5.2]
+================================================================================
+
+STATUS: Players can add, share, and vote on content without developer.
+
+[42.1] In-Game Mod Browser (Local File Only)
+      
+      WHAT:
+      UI that scans /mods/ folder and shows available mods with descriptions.
+      One-click enable/disable.
+      
+      HOW:
+      - Reads mod manifest.json
+      - Shows name, version, author, description
+      - Toggle checkbox to enable/disable
+      - Resolves conflicts (warns if two mods edit same item)
+      - No internet; works offline
+      
+      WHY:
+      Makes modding user-friendly. Players discover installed mods easily.
+      
+      FILES MODIFIED:
+      - app/ui/mod_browser.py (NEW)
+
+---
+
+[42.2] Export Custom Content as Shareable JSON
+      
+      WHAT:
+      Any custom enemy, item, quest, or event can be exported as a single JSON
+      file. Share on forums. Others drop into /mods/ to install.
+      
+      HOW:
+      - In editor, click “Export” → generates standalone .json
+      - Includes all dependencies (e.g., item references)
+      - Recipient places file in /mods/any_folder/
+      - Game auto-detects on next launch
+      
+      WHY:
+      Community content sharing becomes trivial. No programming required.
+      
+      FILES MODIFIED:
+      - app/utils/content_exporter.py (NEW)
+
+---
+
+[42.3] Player-Created Quests (Full Quest Designer)
+      
+      WHAT:
+      Visual quest builder. Set objectives (kill X enemies, collect Y items,
+      talk to NPC Z), rewards, dialogue. Save as mod.
+      
+      HOW:
+      - Quest editor UI
+      - Drag-and-drop conditions and effects
+      - Test quest immediately in sandbox mode
+      - Export as JSON mod
+      - Other players can install and play your quest
+      
+      WHY:
+      Turns players into game designers. Infinite user-generated content.
+      
+      FILES MODIFIED:
+      - app/ui/developer/quest_editor.py (NEW)
+
+================================================================================
+TIER 43 — ALTERNATIVE PROGRESSION PATHS [v5.3]
+================================================================================
+
+STATUS: Players can ignore combat entirely and still “win”.
+
+[43.1] Pacifist Mode (Complete Without Killing)
+      
+      WHAT:
+      Special flag for players who want zero combat. All enemies can be bribed,
+      persuaded, or avoided. Quests have peaceful resolutions.
+      
+      HOW:
+      - Toggle on character creation: “Pacifist”
+      - Combat replaced with dialogue options
+      - XP earned from persuasion, stealth, or exploration
+      - Achievements for completing main quest without any kills
+      - Some items replaced with peaceful alternatives
+      
+      WHY:
+      Respects playstyle diversity. Some players dislike combat. Let them be
+      merchants, diplomats, or explorers.
+      
+      FILES MODIFIED:
+      - data/player/pacifist_alternatives.json
+      - app/components/game_engine/pacifist_system.py
+
+---
+
+[43.2] Pure Merchant Run (Economy Victory)
+      
+      WHAT:
+      Win condition based on accumulating wealth and owning businesses. No need
+      to enter dungeons.
+      
+      HOW:
+      - Track “Wealth Score” (net worth + investments)
+      - Reach 1 million gold → “Merchant Prince” victory
+      - Alternative: own all businesses in city
+      - Trading, crafting, fishing, farming all viable
+      - Leaderboard for wealth score
+      
+      WHY:
+      Players who love economy can focus entirely on it. Multiple victory paths.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/wealth_system.py
+
+---
+
+[43.3] Explorer Mode (Discover Everything)
+      
+      WHAT:
+      Victory based on map completion, not combat or wealth. Discover all locations,
+      find all secrets, map every dungeon.
+      
+      HOW:
+      - Track: locations discovered, dungeon rooms revealed, secret areas found
+      - 100% exploration unlocks “Cartographer” title
+      - Special tools: compass, map scrolls (reveal hidden areas)
+      - No combat required (stealth or avoidance)
+      
+      WHY:
+      Exploration-focused players get their own endgame.
+      
+      FILES MODIFIED:
+      - data/world/exploration_goals.json
+
+================================================================================
+TIER 44 — TIME MANIPULATION & NG+ CYCLES [v5.4]
+================================================================================
+
+STATUS: Players control game speed and loops.
+
+[44.1] Time Scaling (Speed Up / Slow Down)
+      
+      WHAT:
+      Slider to adjust game speed from 0.1x to 10x. Actions resolve faster or
+      slower. For grinding or savoring.
+      
+      HOW:
+      - Speed multiplier affects: action cooldowns, fishing checks, auto-battle ticks
+      - Does not affect real-time events (daily/weekly challenges use real clock)
+      - UI shows current speed
+      - Can be changed mid-game
+      
+      WHY:
+      Players with limited time can speed up grinding. Players who want slow
+      roleplay can slow down.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/time_manager.py (speed factor)
+
+---
+
+[44.2] Endless New Game+ (Infinite Resets with Scaling)
+      
+      WHAT:
+      After any victory condition, player can start NG+. Enemies get +20% stats
+      per cycle. Player keeps certain bonuses (legacy points, artifacts).
+      
+      HOW:
+      - NG+ button appears after victory
+      - Cycle number tracked (NG+1, NG+2, etc.)
+      - Enemy scaling: base * (1 + 0.2 * cycle)
+      - Player keeps: legacy points, collected artifacts, titles
+      - Player loses: inventory, gold, level (reset to 1)
+      - Special rewards for high NG+ cycles (cosmetic only)
+      
+      WHY:
+      Infinite replayability. Players chase higher NG+ cycles.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/new_game_plus.py
+
+---
+
+[44.3] Save State Slots (Manual Save/Load)
+      
+      WHAT:
+      Players can create named save states at any time. Load any previous state.
+      For experimentation or “what if” scenarios.
+      
+      HOW:
+      - Save slots UI: 10 slots per profile
+      - Save description field (player notes)
+      - Load overwrites current state (confirmation dialog)
+      - Autosave still runs separately
+      - Useful for testing risky strategies
+      
+      WHY:
+      Empowers players to experiment without fear. No “save scumming” stigma.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/save_slots.py
+
+================================================================================
+TIER 45 — FULL DATA EXPOSURE & EDITING [v5.5]
+================================================================================
+
+STATUS: Players can see and edit every variable.
+
+[45.1] Live JSON Inspector
+      
+      WHAT:
+      Window showing live game state as JSON. Editable fields. Changes apply
+      immediately.
+      
+      HOW:
+      - Developer panel: “Inspect State”
+      - Tree view of player_state, game_state, dungeon_state
+      - Double-click value to edit
+      - Validation: type checking (can't set string to number)
+      - “Apply” button updates live game
+      
+      WHY:
+      Ultimate transparency. Players see exactly how game works. Modify anything.
+      
+      FILES MODIFIED:
+      - app/ui/developer/json_inspector.py (NEW)
+
+---
+
+[45.2] Raw Data Dump (Export Everything)
+      
+      WHAT:
+      Button to export all game data (items, enemies, lore, player state) as a
+      single JSON or CSV. For analysis or backup.
+      
+      HOW:
+      - “Export All Data” in main menu
+      - Options: JSON (full), CSV (tables), Markdown (human readable)
+      - Saves to /exports/game_data_YYYYMMDD.zip
+      - Includes player profile (anonymized if desired)
+      
+      WHY:
+      Data nerds can analyze drop rates, balance, or create external tools.
+      
+      FILES MODIFIED:
+      - app/utils/data_exporter.py
+
+---
+
+[45.3] Live Reload of JSON (Edit While Playing)
+      
+      WHAT:
+      Player edits a JSON file (e.g., enemies.json) in external editor. Game
+      detects change and reloads without restart.
+      
+      HOW:
+      - File watcher thread monitors data/ and mods/ folders
+      - On change: reload that specific file
+      - If change invalid (schema error): log error, keep old data
+      - Show notification: “Reloaded enemies.json”
+      - Hot-reload for almost all data types
+      
+      WHY:
+      Modders can iterate instantly. No restart needed. Rapid prototyping.
+      
+      FILES MODIFIED:
+      - app/utils/hot_reload.py (NEW)
+
+================================================================================
+TIER 46 — PLAYER RULES & HOUSES (HOMEBREW SYSTEMS) [v5.6]
+================================================================================
+
+STATUS: Players can write their own rule modules.
+
+[46.1] Custom Lua/Python Scripting (Full Rule Changes)
+      
+      WHAT:
+      Players can write scripts that override core game logic. Example: “Change
+      damage formula”, “Add new stat”, “Make enemies drop only fish”.
+      
+      HOW:
+      - Scripts folder: /scripts/rules/
+      - Hook system: on_attack, on_death, on_trade, etc.
+      - Scripts written in Python (or embedded Lua)
+      - Example script:
+        def modify_damage(player_damage, enemy):
+            return player_damage * 2  # double damage
+      - Scripts can be enabled/disabled per profile
+      
+      WHY:
+      Ultimate modding freedom. Players can completely redesign the game.
+      
+      FILES MODIFIED:
+      - app/api/scripting_hooks.py
+      - docs/scripting_api.md (full reference)
+
+---
+
+[46.2] Community Rule Packs (Shared House Rules)
+      
+      WHAT:
+      Players package custom scripts and JSON overrides into a “Rule Pack”.
+      Share with friends. One-click install.
+      
+      HOW:
+      - Rule pack = zip file with manifest.json + scripts + overrides
+      - Manifest specifies: name, description, required game version
+      - Install: extract to /rule_packs/
+      - Activate from main menu (only one active at a time)
+      - Rule pack can override any game behavior
+      
+      WHY:
+      Turns the game into a platform for countless variants. “Ironman pacifist
+      randomizer” rule pack, etc.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/rule_pack_loader.py (NEW)
+
+================================================================================
+TIER 47 — ACCESSIBILITY FOR CREATORS [v5.7]
+================================================================================
+
+STATUS: Tools for content creators, streamers, and wiki editors.
+
+[47.1] Streamer Mode (Hide Private Info)
+      
+      WHAT:
+      Hides player name, gold amount, and other sensitive data on screen.
+      Shows a “Streamer Mode Active” indicator.
+      
+      HOW:
+      - Toggle in settings
+      - Replaces gold with “????”, player name with “Adventurer”
+      - Hides save slot names and profile list
+      - Still records gameplay normally
+      
+      WHY:
+      Streamers can play without revealing account details.
+      
+      FILES MODIFIED:
+      - app/ui/streamer_mode.py
+
+---
+
+[47.2] Screenshot & Replay Capture
+      
+      WHAT:
+      One-key screenshot of current game state (formatted text). Record combat
+      log as replay file for sharing.
+      
+      HOW:
+      - F12: save screenshot as .txt file (full UI state)
+      - Replay recording: toggle record, saves all actions and RNG seed
+      - Replay player: loads seed and replays actions step by step
+      - Export replay as JSON for forum sharing
+      
+      WHY:
+      Players share epic moments. Replay debugging for modders.
+      
+      FILES MODIFIED:
+      - app/utils/replay_system.py (NEW)
+
+---
+
+[47.3] Wiki Generator (Export Game Data as Wiki Pages)
+      
+      WHAT:
+      Automatically generate HTML/Markdown wiki from game data. Includes all
+      enemies, items, quests, locations with cross-references.
+      
+      HOW:
+      - “Generate Wiki” button in tools
+      - Output: /wiki/ folder with index.html
+      - Includes search, categories, stat tables
+      - Updates as game data changes (regenerate on demand)
+      - Community can host static wiki online
+      
+      WHY:
+      Official wiki stays up-to-date automatically. Community can extend.
+      
+      FILES MODIFIED:
+      - app/utils/wiki_generator.py (NEW)
+
+================================================================================
+TIER 48 — LOCAL MULTIPLAYER (HOT SEAT) [v5.8]
+================================================================================
+
+STATUS: Two players on same computer, taking turns.
+
+[48.1] Pass-and-Play Mode
+      
+      WHAT:
+      Two profiles on same machine. Players take turns. Each plays their own
+      character. No interaction except leaderboard comparison.
+      
+      HOW:
+      - “Hot Seat” mode from main menu
+      - Profiles P1 and P2 selected
+      - Turns alternate every 5 minutes (or after each action, configurable)
+      - Screen shows “Player 1's turn”
+      - After turn, game saves and switches profile
+      - Both players see same leaderboard
+      
+      WHY:
+      Couch co-op for families or friends. Competitive without internet.
+      
+      FILES MODIFIED:
+      - app/components/multiplayer/hot_seat.py (NEW)
+
+---
+
+[48.2] Competitive Dungeon Race (Same Seed)
+      
+      WHAT:
+      Both players run same dungeon seed simultaneously (alternating turns).
+      Faster clear time wins.
+      
+      HOW:
+      - Select seed, both players agree
+      - Player 1 starts, takes actions, timer runs
+      - After Player 1 finishes or dies, Player 2 starts
+      - Compare times, declare winner
+      - Bet gold on outcome (optional)
+      
+      WHY:
+      Head-to-head competition offline.
+      
+      FILES MODIFIED:
+      - app/components/multiplayer/dungeon_race.py
+
+================================================================================
+TIER 49 — LEGACY & PRESERVATION [v5.9]
+================================================================================
+
+STATUS: Game can be archived, modded forever, and never die.
+
+[49.1] Self-Contained Portable Version
+      
+      WHAT:
+      Game saves all data (profiles, mods, config) inside its own folder. No
+      registry, no appdata. USB-drive friendly.
+      
+      HOW:
+      - Use portable mode flag: --portable
+      - All paths relative to executable folder
+      - Config file: config.ini with [Paths] section
+      - Can run from read-only media (warns but works)
+      
+      WHY:
+      Players take game anywhere. No installation traces.
+      
+      FILES MODIFIED:
+      - app/utils/path_manager.py (portable mode)
+
+---
+
+[49.2] JSON Versioning & Migration Tool
+      
+      WHAT:
+      When game updates, old JSON files are automatically migrated to new schema.
+      No data loss. Migration script included.
+      
+      HOW:
+      - Each JSON file has $schema_version field
+      - On load, if version < current: run migrator
+      - Migrators in /data/migrations/
+      - If migration impossible: show error, backup old file
+      - Manual migration tool for advanced users
+      
+      WHY:
+      Mods and saves survive game updates. Long-term preservation.
+      
+      FILES MODIFIED:
+      - app/utils/json_migrator.py (NEW)
+
+---
+
+[49.3] Offline Forever Pledge
+      
+      WHAT:
+      Splash screen on launch: “This game will never require internet, never
+      show ads, never phone home. Your data stays yours.”
+      
+      HOW:
+      - Text in about screen and readme
+      - No network code in entire codebase (verified by build script)
+      - Checks for internet imports: none allowed
+      - Signed statement by developer
+      
+      WHY:
+      Trust and transparency. Players know game won't be enshittified.
+      
+      FILES MODIFIED:
+      - README.md (offline pledge)
+      - about_screen.py (display pledge)
+
+================================================================================
+TIER 50 — THE FINAL TIER: PLAYER IS THE DEVELOPER [v6.0]
+================================================================================
+
+STATUS: Full source code included. Game becomes a platform.
+
+[50.1] Full Source Code Included
+      
+      WHAT:
+      Game ships with complete, commented Python source code. No compilation,
+      no obfuscation. MIT license.
+      
+      HOW:
+      - /src/ folder with all .py files
+      - Extensive comments and docstrings
+      - Build script that packages source + runtime
+      - Player can modify any part of game logic
+      - “Developer Mode” menu item that opens source in default editor
+      
+      WHY:
+      Ultimate player empowerment. If you don't like how something works, change
+      it. Fork the game. Make your own version.
+      
+      FILES MODIFIED:
+      - Entire codebase (commented)
+      - LICENSE (MIT or CC0)
+
+---
+
+[50.2] Built-in IDE (Lightweight Code Editor)
+      
+      WHAT:
+      Simple code editor inside game. Edit Python source, save, and hot-reload
+      game logic without restart.
+      
+      HOW:
+      - Developer panel: “Edit Source”
+      - Syntax highlighting for Python/JSON
+      - Save triggers reload of modified module
+      - Safety: syntax errors caught, rollback to previous version
+      - Allows live coding of game behavior
+      
+      WHY:
+      Players learn to code by modding. Game becomes teaching tool.
+      
+      FILES MODIFIED:
+      - app/ui/developer/code_editor.py (NEW)
+
+---
+
+[50.3] Community Fork Launcher
+      
+      WHAT:
+      Game can detect and launch community forks (different directories).
+      Players can switch between “vanilla”, “hardcore modpack”, “total conversion”.
+      
+      HOW:
+      - /forks/ directory contains subfolders with complete game copies
+      - Launcher shows list of installed forks
+      - Each fork has its own data/, mods/, saves/
+      - One-click launch any fork
+      - Forks can be downloaded as zip from community
+      
+      WHY:
+      Turns game into a platform for infinite variations. No central control.
+      
+      FILES MODIFIED:
+      - launcher.py (separate executable)
+      - app/utils/fork_manager.py
