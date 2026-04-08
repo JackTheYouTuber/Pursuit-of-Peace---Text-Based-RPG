@@ -1,39 +1,30 @@
 import tkinter as tk
-
+from .theme import PANEL_BG, MUTED_FG, ACCENT_FG, FONT_SMALL, FONT_BOLD, PAD_SMALL
 
 class StatBar(tk.Frame):
-    """Labeled numeric stat display. Layer 1 — no project imports."""
-
-    BG = "#16213e"
-    LABEL_FG = "#7a8fa6"
-    VALUE_FG = "#e2b96f"
-    FONT_LABEL = ("Courier", 10)
-    FONT_VALUE = ("Courier", 11, "bold")
-
     def __init__(self, parent, label="", value=0, **kwargs):
-        bg = kwargs.pop('bg', self.BG)
+        bg = kwargs.pop('bg', PANEL_BG)
         super().__init__(parent, bg=bg, **kwargs)
-
         self._label_var = tk.StringVar(value=label)
         self._value_var = tk.StringVar(value=str(value))
 
         tk.Label(
             self,
             textvariable=self._label_var,
-            font=self.FONT_LABEL,
-            fg=self.LABEL_FG,
-            bg=self.BG,
+            font=FONT_SMALL,
+            fg=MUTED_FG,
+            bg=PANEL_BG,
             anchor=tk.W,
-        ).pack(side=tk.LEFT, padx=(4, 2))
+        ).pack(side=tk.LEFT, padx=(PAD_SMALL, 2))
 
         tk.Label(
             self,
             textvariable=self._value_var,
-            font=self.FONT_VALUE,
-            fg=self.VALUE_FG,
-            bg=self.BG,
+            font=FONT_BOLD,
+            fg=ACCENT_FG,
+            bg=PANEL_BG,
             anchor=tk.W,
-        ).pack(side=tk.LEFT, padx=(0, 8))
+        ).pack(side=tk.LEFT, padx=(0, PAD_SMALL))
 
     def set_value(self, value):
         self._value_var.set(str(value))

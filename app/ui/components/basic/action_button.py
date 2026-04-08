@@ -1,31 +1,22 @@
 import tkinter as tk
-
+from .theme import BG_DEFAULT, TEXT_FG, ACTIVE_BG, ACTIVE_FG, FONT_BOLD, BUTTON_PADX, BUTTON_PADY
 
 class ActionButton(tk.Frame):
-    """Button with label and callback. No logic inside. Layer 1."""
-
-    BG = "#0f3460"
-    FG = "#d4c9a8"
-    ACTIVE_BG = "#e94560"
-    ACTIVE_FG = "#ffffff"
-    FONT = ("Courier", 11, "bold")
-
     def __init__(self, parent, label="", on_click=None, **kwargs):
-        bg = kwargs.pop('bg', self.BG)
+        bg = kwargs.pop('bg', BG_DEFAULT)
         super().__init__(parent, bg=bg, **kwargs)
         self._on_click = on_click
-
         self._btn = tk.Button(
             self,
             text=label,
-            font=self.FONT,
-            bg=self.BG,
-            fg=self.FG,
-            activebackground=self.ACTIVE_BG,
-            activeforeground=self.ACTIVE_FG,
+            font=FONT_BOLD,
+            bg=BG_DEFAULT,
+            fg=TEXT_FG,
+            activebackground=ACTIVE_BG,
+            activeforeground=ACTIVE_FG,
             relief=tk.FLAT,
-            padx=12,
-            pady=6,
+            padx=BUTTON_PADX,
+            pady=BUTTON_PADY,
             cursor="hand2",
             command=self._handle_click,
         )
