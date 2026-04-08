@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from app.ui.components.basic.stat_bar import StatBar
+from ..basic.stat_bar import StatBar
 
 
 class PlayerPanel(tk.Frame):

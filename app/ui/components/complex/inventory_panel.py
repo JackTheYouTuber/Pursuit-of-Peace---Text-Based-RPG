@@ -1,8 +1,7 @@
 import tkinter as tk
 
-from app.ui.components.basic.menu_list import MenuList
-from app.ui.components.basic.text_display import TextDisplay
-
+from ..basic.menu_list import MenuList
+from ..basic.text_display import TextDisplay
 
 class InventoryPanel(tk.Frame):
     """MenuList (items) + TextDisplay (detail). Layer 2."""

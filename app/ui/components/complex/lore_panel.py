@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from app.ui.components.basic.text_display import TextDisplay
+from ..basic.text_display import TextDisplay
 
 
 class LorePanel(tk.Frame):

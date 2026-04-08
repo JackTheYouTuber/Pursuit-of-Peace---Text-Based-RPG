@@ -1,8 +1,8 @@
 import tkinter as tk
 
-from app.ui.components.basic.text_display import TextDisplay
-from app.ui.components.basic.menu_list import MenuList
-from app.ui.components.basic.stat_bar import StatBar
+from ..basic.text_display import TextDisplay
+from ..basic.menu_list import MenuList
+from ..basic.stat_bar import StatBar
 
 
 class CombatPanel(tk.Frame):
