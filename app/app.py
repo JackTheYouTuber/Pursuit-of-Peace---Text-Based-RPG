@@ -1,3 +1,10 @@
+"""
+Pursuit of Peace - Main Application Entry Point
+
+Initializes the Tkinter root window, loads player profile,
+sets up the game engine, UI assembler, and action controllers.
+"""
+
 import tkinter as tk
 from app.version import VERSION_LABEL
 from app.data_loader import DataLoader
@@ -13,6 +20,8 @@ from app.controllers.profile_actions import ProfileActions
 
 
 class App:
+    """Main application class that orchestrates the game lifecycle."""
+
     WINDOW_TITLE = f"Pursuit of Peace  {VERSION_LABEL}"
     WINDOW_W = 1024
     WINDOW_H = 720
@@ -48,9 +57,10 @@ class App:
         self._engine = EngineFactory.create(profile_state, self._loader, self._logger)
 
         # ----- UI Assembler & Coordinator -----
+        # Start with empty callbacks; will be filled after GameActions creation
         self._assembler = UIAssembler(
             root=self._window.get_content_frame(),
-            callbacks={},  # will be filled after GameActions created
+            callbacks={},
             logger=self._logger,
         )
         self._coordinator = ViewCoordinator(
@@ -80,17 +90,25 @@ class App:
         )
         self._profile_actions.set_current_profile(self._profile_name)
 
-        # ----- Connect callbacks to assembler -----
-        self._assembler._callbacks = {
+        # ----- Connect callbacks to assembler (update in place) -----
+        self._assembler._callbacks.update({
             "location_action": self._game_actions.on_location_action,
             "dungeon_action": self._game_actions.on_dungeon_action,
             "combat_action": self._game_actions.on_combat_action,
             "inventory_select": self._game_actions.on_inventory_select,
-        }
+        })
 
         # ----- Navigation buttons -----
-        for view_key, label in [("city", "  Explore"), ("inventory", "  Inventory"), ("lore", "  Lore")]:
-            self._window.add_nav_button(view_key, label, lambda k=view_key: self._show_view(k))
+        nav_buttons = [
+            ("city", "  Explore"),
+            ("inventory", "  Inventory"),
+            ("lore", "  Lore"),
+        ]
+        for view_key, label in nav_buttons:
+            self._window.add_nav_button(
+                view_key, label,
+                lambda k=view_key: self._show_view(k)
+            )
 
         # ----- Menu -----
         self._menu = GameMenu(
@@ -114,6 +132,7 @@ class App:
     # Internal view switching (used by nav buttons)
     # ------------------------------------------------------------------
     def _show_view(self, view_name: str):
+        """Switch to the given view and update navigation button highlights."""
         if view_name not in ("city", "dungeon", "combat", "inventory", "lore"):
             return
         self._coordinator.show_view(view_name)
@@ -121,4 +140,5 @@ class App:
             self._window.highlight_nav_button(key, key == view_name)
 
     def run(self):
+        """Start the Tkinter main event loop."""
         self._root.mainloop()
