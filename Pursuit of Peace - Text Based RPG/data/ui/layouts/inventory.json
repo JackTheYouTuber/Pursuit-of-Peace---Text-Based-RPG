@@ -1,9 +1,0 @@
-{
-  "type": "InventoryPanel",
-  "name": "inventory_panel",
-  "data": {
-    "items_source": "inventory.items",
-    "detail_source": "inventory.detail"
-  },
-  "on_select": "inventory_select"
-}

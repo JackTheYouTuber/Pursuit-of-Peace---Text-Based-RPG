@@ -1,9 +1,0 @@
-{
-  "type": "LocationPanel",
-  "name": "city_panel",
-  "data": {
-    "description_source": "location.description",
-    "actions_source": "location.actions"
-  },
-  "on_action": "location_action"
-}
