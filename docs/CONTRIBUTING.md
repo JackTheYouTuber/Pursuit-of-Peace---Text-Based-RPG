@@ -143,6 +143,14 @@ For dungeon room lore, add entries to `data/lore/dungeon.json` and reference the
 
 ---
 
+## Community & Support
+
+- **Subreddit**: [r/PursuitOfPeaceGame](https://www.reddit.com/r/PursuitOfPeaceGame/) — share mods, ask questions, post suggestions
+- **Discord**: [Join the server](https://discord.gg/HPVcBv5Dma) — real-time chat with developers and modders
+- **Itch.io**: [Game page](https://jacktheyoutuber.itch.io/pursuit-of-peace) — download latest builds, leave reviews
+
+---
+
 ## Code Style Guidelines
 
 - **State immutability pattern:** Always `state = dict(player_state)` at the start of any action method. Never mutate the incoming dict directly.
