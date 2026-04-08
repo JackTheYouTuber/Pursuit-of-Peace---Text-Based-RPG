@@ -2489,3 +2489,1890 @@ STATUS: Dungeon generation becomes sophisticated. Infinite replayability emerges
       FILES:
       - data/dungeon/modifiers.json
       - app/components/game_engine/dungeon_generator.py
+
+================================================================================
+TIER 16 — GAMBLING & RANDOM REWARD SYSTEMS [v2.2]
+================================================================================
+
+STATUS: Players can risk resources for high-reward randomness. Gambling mechanics
+add tension and “one more try” loops. Since the game is offline, players can
+choose to cheat, but the intended experience is genuine risk/reward.
+
+[16.1] Dice Gambling (Tavern)
+      
+      WHAT:
+      At the tavern, players can play a dice game. Bet gold, roll a virtual die,
+      win if roll meets or exceeds a threshold. Simple, fast, addictive.
+      
+      HOW:
+      - Player chooses bet amount (min 10 gold, max current gold)
+      - Roll a 20-sided die (1-20)
+      - Payout: roll <= 5 → lose bet; roll 6-15 → win 2x bet; roll 16-19 → win 3x bet; roll 20 → win 5x bet
+      - Display result: "You rolled 14! You win 2x your bet!"
+      - Gold instantly updated
+      
+      WHY:
+      Gambling provides short, high-dopamine loops. Players risk gold for chance
+      at big payout. “Just one more roll” addiction hook.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/gambling_system.py (NEW)
+      - data/gambling/dice_games.json
+      - app/ui/components/complex/tavern_panel.py
+
+---
+
+[16.2] Slot Machine (Casino Location)
+      
+      WHAT:
+      A simple slot machine with three reels. Match three symbols for a payout.
+      Different symbols have different odds and rewards. Creates visual (text)
+      excitement.
+      
+      HOW:
+      - Symbols: Cherry, Coin, Skull, Seven
+      - Each spin costs 5 gold
+      - Randomly select symbols for three slots
+      - Payout table:
+        * Three Cherries → 10 gold
+        * Three Coins → 25 gold
+        * Three Sevens → 100 gold
+        * Three Skulls → lose 15 gold (penalty)
+      - Display: "Reels: [Cherry] [Coin] [Cherry] → No win"
+      
+      WHY:
+      Slot machines are classic random reward generators. Low cost per play
+      encourages repeated pulls. “Near miss” effect (two cherries + one coin)
+      keeps players trying.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/gambling_system.py (slot method)
+      - data/gambling/slot_machine.json
+      - app/ui/components/complex/casino_panel.py (NEW)
+
+---
+
+[16.3] Mystery Boxes (Random Loot Crates)
+      
+      WHAT:
+      Players can buy Mystery Boxes from a vendor. Box contains random items,
+      ranging from worthless junk to rare equipment. Price fixed (e.g., 100 gold).
+      Creates “loot box” addiction loop without real money.
+      
+      HOW:
+      - Mystery Box item in shop: "Mystery Box - 100 gold"
+      - On purchase: roll on loot table
+      - Loot table:
+        * 40%: Common item (value 10-50 gold)
+        * 35%: Uncommon item (50-150 gold)
+        * 20%: Rare item (150-400 gold)
+        * 4%: Epic item (400-1000 gold)
+        * 1%: Legendary item (1000+ gold)
+      - Display: "You open the box and find [item]!"
+      - Item added to inventory
+      
+      WHY:
+      Mystery boxes create variable reward schedule. Players chase rare drops.
+      “Maybe next box will be legendary” hook. Completely optional.
+      
+      FILES MODIFIED:
+      - data/gambling/mystery_boxes.json
+      - app/components/game_engine/gambling_system.py (open_box method)
+
+---
+
+[16.4] Daily Lottery (Time-Limited Gambling)
+      
+      WHAT:
+      Once per real-world day (or in-game day), players can buy a lottery ticket.
+      At the end of the day, a random winner gets a large jackpot. Encourages
+      daily login.
+      
+      HOW:
+      - Lottery ticket costs 20 gold
+      - Player gets a ticket with a random number (1-1000)
+      - At day rollover (or real 24h), generate winning number
+      - If player's number matches: win jackpot (e.g., 5000 gold)
+      - If not: lose ticket
+      - Display: "Lottery drawing! Winning number 742. Your ticket: 156. No win."
+      
+      WHY:
+      Lottery creates daily ritual. Low cost, huge potential payout. FOMO drives
+      daily engagement.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/gambling_system.py (lottery methods)
+      - data/player/lottery_state.json
+
+---
+
+[16.5] Blackjack / Card Games
+      
+      WHAT:
+      Full blackjack minigame in tavern. Player vs NPC dealer. Adds strategic
+      gambling beyond pure chance.
+      
+      HOW:
+      - Standard blackjack rules: player tries to beat dealer without exceeding 21
+      - Player places bet, receives two cards
+      - Options: Hit, Stand, Double Down
+      - Dealer reveals cards and plays
+      - Payout: win = 2x bet, blackjack = 2.5x bet, push = return bet
+      - Uses simple RNG for card draws (no deck persistence)
+      
+      WHY:
+      Blackjack adds skill element to gambling. Players feel agency. Longer
+      engagement than dice or slots.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/card_games.py (NEW)
+      - data/gambling/blackjack_rules.json
+
+================================================================================
+TIER 17 — COLLECTION & COMPLETIONISM (ENHANCED) [v2.3]
+================================================================================
+
+STATUS: Expand collection systems beyond bestiary and items. Add collection
+sets, completion rewards, and collection tracking UI.
+
+[17.1] Set Collection Bonuses
+      
+      WHAT:
+      Collecting entire themed sets (e.g., “Full Rat Set” = rat tail, rat tooth,
+      rat pelt) grants a permanent bonus. Encourages collecting all pieces.
+      
+      HOW:
+      - Define sets in data/collections/sets.json:
+        {
+          "id": "rat_set",
+          "name": "Rat Hunter",
+          "items": ["item_rat_tail", "item_rat_tooth", "item_rat_pelt"],
+          "bonus": {"damage_vs_rodents": 5, "gold": 0}
+        }
+      - When player acquires all items in set, unlock bonus
+      - Bonus is passive (always active)
+      - UI shows set progress: "Rat Hunter: 2/3 items"
+      
+      WHY:
+      Sets create “catch them all” urgency. Players farm specific enemies or
+      locations to complete sets. Completion feels rewarding.
+      
+      FILES MODIFIED:
+      - data/collections/sets.json (NEW)
+      - app/components/game_engine/collection_system.py (set logic)
+
+---
+
+[17.2] Collection Milestones & Rewards
+      
+      WHAT:
+      Reaching collection thresholds (10 items, 50 items, 100 items) gives
+      milestone rewards. Separate from set bonuses.
+      
+      HOW:
+      - Track total unique items collected (permanent, even if sold)
+      - Milestones defined in data/collections/milestones.json
+      - Example: 10 items → "Novice Collector" title + 50 gold
+      - 50 items → "Collector" title + rare item
+      - 100 items → "Master Collector" title + legendary item
+      - Milestones trigger once per profile
+      
+      WHY:
+      Milestones provide continuous feedback. Players always feel progress toward
+      next reward. Encourages exploring all content.
+      
+      FILES MODIFIED:
+      - data/collections/milestones.json
+      - app/components/game_engine/collection_system.py (milestone check)
+
+---
+
+[17.3] Shiny / Rare Variant Collection
+      
+      WHAT:
+      Some enemies and items have “shiny” (rare) variants. Different color/name,
+      same stats but extremely low drop rate (1%). Collecting shinies is optional
+      hardcore completionist goal.
+      
+      HOW:
+      - Shiny flag on enemy/item definitions
+      - Shiny version: "Rat" vs "Albino Rat" (visual text only)
+      - Drop rate: 1% when encountering enemy or finding item
+      - Shiny count tracked separately in bestiary/collection
+      - Completion: collect all shinies → "Shiny Master" title
+      
+      WHY:
+      Shinies add ultra-rare chase items. Completionists grind for hundreds of
+      hours. No gameplay advantage, only prestige.
+      
+      FILES MODIFIED:
+      - data/dungeon/enemies/enemies.json (add shiny_name, shiny_chance)
+      - data/dungeon/items/items.json (add shiny_variant field)
+
+================================================================================
+TIER 18 — SOCIAL COMPARISON (OFFLINE LEADERBOARDS) [v2.4]
+================================================================================
+
+STATUS: Bots and local leaderboards create competitive feel without multiplayer.
+
+[18.1] Expanded Bot Profiles & Leaderboards
+      
+      WHAT:
+      More bot profiles with varied stats. Leaderboards for gold, level, enemies
+      defeated, collection completion, fastest dungeon clear. Player sees rank
+      among 50+ bots.
+      
+      HOW:
+      - Bot profiles in data/bots/bot_profiles.json (expand to 50+ entries)
+      - Leaderboard UI shows top 10 bots + player rank
+      - Categories:
+        * Wealthiest (total gold earned)
+        * Highest Level
+        * Most Enemies Defeated
+        * Bestiary Completion %
+        * Fastest Dungeon Clear (track best time)
+      - Player can filter by category
+      
+      WHY:
+      Competing against bots feels like multiplayer. Players try to beat specific
+      bot names. Leaderboards create ongoing goals.
+      
+      FILES MODIFIED:
+      - data/bots/bot_profiles.json (expand)
+      - app/ui/components/complex/leaderboard_panel.py (NEW)
+
+---
+
+[18.2] Rival System (Dynamic Bot Nemesis)
+      
+      WHAT:
+      A specific bot becomes your “rival” based on close stats. Rival appears in
+      events and dialogue. Defeating rival's records gives achievements.
+      
+      HOW:
+      - After first week, pick bot with nearest total score
+      - Rival name shown in profile: "Your rival: Gorak the Strong"
+      - Rival's stats update periodically (simulated progression)
+      - When player surpasses rival in any category, message: "You've surpassed your rival!"
+      - New rival selected when gap widens
+      
+      WHY:
+      Rival creates personal narrative. Players care about beating “that one bot.”
+      Dynamic rivalry feels alive.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/rival_system.py (NEW)
+      - data/player/rival_state.json
+
+---
+
+[18.3] Challenge Ghosts (Time Attack Records)
+      
+      WHAT:
+      For dungeon seeds, player's best clear time is saved. A “ghost” (text replay)
+      shows the sequence of actions. Player tries to beat their own ghost.
+      
+      HOW:
+      - On dungeon completion, record actions and timestamps
+      - Save as ghost file in data/ghosts/
+      - On replaying same seed, show ghost's progress: "Ghost was here 2 seconds faster"
+      - Not real-time, just comparison
+      - Beating ghost gives "Time Breaker" achievement
+      
+      WHY:
+      Ghosts create self-competition. Players optimize runs to beat personal best.
+      Adds speedrunning culture.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/ghost_system.py (NEW)
+      - data/ghosts/*.json (stored ghosts)
+
+================================================================================
+TIER 19 — IDLE & INCREMENTAL PROGRESSION (ENHANCED) [v2.5]
+================================================================================
+
+STATUS: More idle activities with offline progression. Players can “set and forget”
+and return to rewards.
+
+[19.1] Passive Gold Generation (Investments)
+      
+      WHAT:
+      Players can invest gold in businesses (e.g., “Buy a fishing boat” for 1000 gold).
+      Investment generates passive gold per real hour while game is closed.
+      
+      HOW:
+      - Investments defined in data/idle/investments.json
+      - Example: Fishing Boat → cost 1000 gold, generates 5 gold per hour
+      - Mine → cost 5000 gold, generates 30 gold per hour
+      - Merchant Caravan → cost 20000 gold, generates 150 gold per hour
+      - Player can own multiple investments
+      - Offline income calculated on next launch based on elapsed time
+      - Cap: max 24 hours of offline income
+      
+      WHY:
+      Passive income encourages players to launch game daily to collect rewards.
+      “I wonder how much gold I made while sleeping” hook.
+      
+      FILES MODIFIED:
+      - data/idle/investments.json (NEW)
+      - app/components/game_engine/idle_system.py (offline calc)
+      - app/ui/components/complex/investments_panel.py (NEW)
+
+---
+
+[19.2] Auto-Battler Mode (Idle Combat)
+      
+      WHAT:
+      Player can set character to auto-battle easy enemies. Character fights
+      automatically, earns reduced rewards, can die. Set duration (10, 30, 60 minutes).
+      
+      HOW:
+      - Auto-battle mode accessible from dungeon entrance
+      - Choose difficulty (easy only)
+      - Set timer: 10/30/60 minutes
+      - Game simulates combat rounds automatically
+      - Rewards: 50% normal XP/gold (balance for zero effort)
+      - Risk: if character dies, auto-battle stops and player gets death screen
+      - During auto-battle, UI shows log updates
+      
+      WHY:
+      Auto-battler gives players option to grind without attention. Good for
+      multitasking. Reduced rewards keep manual play superior.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/auto_battle.py (NEW)
+      - app/ui/components/complex/auto_battle_panel.py
+
+---
+
+[19.3] Farming & Harvesting (Long-Term Idle)
+      
+      WHAT:
+      Player can plant seeds at a farm. Crops grow over real time (hours/days).
+      Harvest yields ingredients for crafting. Adds gardening idle loop.
+      
+      HOW:
+      - Farm plot: 4x4 grid (16 slots)
+      - Buy seeds from market (e.g., Wheat Seed - 10 gold)
+      - Plant seed, water (optional), wait real time
+      - Growth times: wheat 2 hours, carrot 4 hours, rare herb 24 hours
+      - Harvest gives 3-6 crops
+      - Crops used in cooking/alchemy crafting
+      
+      WHY:
+      Farming is classic idle engagement. Check back daily to harvest. Long-term
+      planning for rare crops.
+      
+      FILES MODIFIED:
+      - data/idle/farming.json (crops)
+      - app/components/game_engine/farming_system.py (NEW)
+      - app/ui/components/complex/farm_panel.py
+
+================================================================================
+TIER 20 — RISK/REWARD & SUNK COST MECHANICS [v2.6]
+================================================================================
+
+STATUS: Systems that make players weigh consequences and feel invested.
+
+[20.1] Cursed Items (Double-Edged Buffs)
+      
+      WHAT:
+      Some items give strong bonuses but also penalties. Example: “Cursed Sword:
+      +20 damage, but -10 max HP.” Player must decide if worth the risk.
+      
+      HOW:
+      - Cursed item definition in items.json:
+        {
+          "id": "item_cursed_sword",
+          "name": "Cursed Blade",
+          "type": "weapon",
+          "stat_bonus": {"damage": 20},
+          "curse_bonus": {"max_hp": -10},
+          "is_cursed": true
+        }
+      - When equipped, curse applies as debuff
+      - Cannot be unequipped without Remove Curse consumable (rare item)
+      - Removing curse destroys item or returns normal version
+      
+      WHY:
+      Cursed items force hard choices. High power with real drawback. Players
+      might keep cursed item for power, accepting penalty.
+      
+      FILES MODIFIED:
+      - data/dungeon/items/items.json (add cursed fields)
+      - app/components/game_engine/buff_system.py (curse handling)
+
+---
+
+[20.2] Debt System (Borrowing Gold)
+      
+      WHAT:
+      Players can borrow gold from a loan shark. Debt accrues interest over time.
+      Failure to pay leads to consequences (item seizure, debuffs). Creates
+      desperation-driven gameplay.
+      
+      HOW:
+      - Loan shark NPC offers loans: 500 gold now, repay 600 within 7 days
+      - Interest: 20% flat, 5% daily late fee
+      - If unpaid after due date: daily penalty (e.g., -10 gold, or -5 max HP until paid)
+      - Debt can spiral: player might borrow more to pay old debt
+      - Paying debt removes penalties
+      
+      WHY:
+      Debt creates high-stakes risk/reward. Player might borrow for expensive item,
+      then rush to repay. Sunk cost: “I already owe, one more loan can't hurt.”
+      
+      FILES MODIFIED:
+      - app/components/game_engine/debt_system.py (NEW)
+      - data/npcs/loan_shark.json
+
+---
+
+[20.3] Hardcore Mode (Permadeath)
+      
+      WHAT:
+      Optional mode when creating character: death is permanent. Profile deleted
+      on death. Special achievements and leaderboard for hardcore players.
+      
+      HOW:
+      - Checkbox on character creation: "Hardcore Mode"
+      - Flag in profile: "hardcore": true
+      - On player death: delete profile file, show memorial screen
+      - Hardcore leaderboard separate from normal
+      - Achievements: "Survive 100 days in Hardcore" etc.
+      
+      WHY:
+      Permadeath creates ultimate tension. Every fight matters. Hardcore mode
+      extends replayability for experienced players.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/death_handler.py (hardcore logic)
+      - data/player/profiles.json (hardcore flag)
+
+================================================================================
+TIER 21 — TIME-LIMITED & ROTATING CONTENT (ENHANCED) [v2.7]
+================================================================================
+
+STATUS: Weekly challenges, rotating shop inventories, and event calendars.
+
+[21.1] Weekly Challenges
+      
+      WHAT:
+      Every real-world week, a new challenge appears. Example: “Defeat 50 rats”
+      or “Collect 10 herbs.” Completion gives unique rewards not available elsewhere.
+      
+      HOW:
+      - Challenge data in data/events/weekly_challenges.json
+      - Weekly schedule: challenge rotates every Monday at 00:00 (system time)
+      - Player sees current challenge and progress
+      - Reward: exclusive title, item, or large gold sum
+      - Missed challenges are gone forever (or return in future rotation)
+      
+      WHY:
+      Weekly challenges drive regular play sessions. FOMO: “I have to complete
+      before Monday.” Rotating content keeps game fresh.
+      
+      FILES MODIFIED:
+      - data/events/weekly_challenges.json (NEW)
+      - app/components/game_engine/challenge_system.py
+
+---
+
+[21.2] Rotating Shop Inventory (Limited-Time Items)
+      
+      WHAT:
+      Shop inventories refresh weekly with rare items. Some items only appear
+      once every few months. Creates urgency to buy now.
+      
+      HOW:
+      - Shop inventory defined with rotation schedule
+      - Weekly pool: 10% of items are “rotating” (others static)
+      - Rotating items tagged with rotation_season or rotation_week
+      - Player sees: “Available for 3 more days!”
+      - Missed items may return after months
+      
+      WHY:
+      Rotating inventory mimics real-world retail FOMO. Players check shops
+      weekly for rare finds. Encourages regular logins.
+      
+      FILES MODIFIED:
+      - data/shop/rotating_inventory.json
+      - app/components/game_engine/shop_system.py (rotation logic)
+
+---
+
+[21.3] Holiday Events (Real-World Calendar)
+      
+      WHAT:
+      Special events tied to real-world holidays: Halloween, Christmas, New Year.
+      Unique enemies, items, decorations. Events last 1-2 weeks.
+      
+      HOW:
+      - System clock checks date range (e.g., Oct 25-31 for Halloween)
+      - During event: override location descriptions, add special NPCs
+      - Event-only items drop (e.g., “Pumpkin Helm”)
+      - After event: items become legacy (no longer obtainable)
+      - Player can keep items earned
+      
+      WHY:
+      Holiday events create real-world connection. Players return for seasonal
+      content. Legacy items become status symbols.
+      
+      FILES MODIFIED:
+      - data/events/holiday_events.json (NEW)
+      - app/components/game_engine/calendar_system.py
+
+================================================================================
+TIER 22 — EMERGENT STORYTELLING & PLAYER-DRIVEN CONTENT [v2.8]
+================================================================================
+
+STATUS: Systems that generate unique narratives from player actions.
+
+[22.1] Dynamic Reputation System
+      
+      WHAT:
+      Player actions affect reputation with factions. High reputation unlocks
+      quests, discounts; low reputation triggers hostility (NPCs refuse service,
+      bounty hunters appear).
+      
+      HOW:
+      - Reputation tracked per faction (e.g., Merchants Guild, Thieves Guild)
+      - Actions modify reputation: helping merchant +5, stealing -10
+      - Reputation levels: Hated (-100 to -51), Unfriendly (-50 to -1), Neutral (0 to 49), Friendly (50 to 99), Honored (100+)
+      - Effects: Friendly = 10% discount; Honored = 20% discount + special quests
+      - Hated = shops refuse service, bounty hunters spawn in dungeons
+      
+      WHY:
+      Reputation makes player choices matter. Creates emergent stories: “I became
+      enemy of the merchants after stealing, now I can't buy potions!”
+      
+      FILES MODIFIED:
+      - data/factions/factions.json (NEW)
+      - app/components/game_engine/reputation_system.py (NEW)
+
+---
+
+[22.2] Procedural NPC Relationships
+      
+      WHAT:
+      NPCs remember player interactions. Repeatedly talking to same NPC unlocks
+      friendship, backstory, and eventually quests. NPCs can become rivals or
+      allies based on actions.
+      
+      HOW:
+      - Each NPC tracks relationship score (0-100)
+      - Talking: +1, completing their quest: +10, harming them: -20
+      - Thresholds: 30 = acquaintance, 60 = friend, 90 = close friend
+      - Friends give gifts, share secrets (map locations, discounts)
+      - Rival NPCs (negative score) may sabotage (e.g., spread rumors increasing prices)
+      
+      WHY:
+      NPC relationships create emotional investment. Players develop favorite NPCs.
+      Emergent stories: “The bartender is my best friend, he gave me a rare map.”
+      
+      FILES MODIFIED:
+      - app/components/game_engine/npc_system.py (relationship tracking)
+      - data/npcs/npcs.json (add relationship thresholds)
+
+---
+
+[22.3] Rumor & News System
+      
+      WHAT:
+      Dynamic rumors spread through NPC dialogue. Rumors hint at events, treasure
+      locations, or upcoming dangers. Some rumors are true, some false.
+      
+      HOW:
+      - Rumor pool in data/events/rumors.json
+      - Rumors have conditions: “If player has done X, rumor Y appears”
+      - NPCs randomly mention rumors from pool
+      - Example: “I heard there's a hidden treasure in the old well.” (leads to new location)
+      - Player can act on rumors (investigate location, find extra loot)
+      - False rumors waste time but add flavor
+      
+      WHY:
+      Rumors make world feel alive and mysterious. Players talk to NPCs for
+      information. Emergent exploration: “That rumor led me to a secret boss!”
+      
+      FILES MODIFIED:
+      - data/events/rumors.json (NEW)
+      - app/components/game_engine/rumor_system.py
+
+---
+
+[22.4] Player-Driven Faction Wars
+      
+      WHAT:
+      Player can align with a faction and help them conquer territory. Faction
+      control affects shop availability, enemy spawns, and quests.
+      
+      HOW:
+      - World map divided into zones (city districts, forest, dungeon floors)
+      - Factions (e.g., Order of Light vs Shadow Syndicate) fight for control
+      - Player actions (completing faction quests) shift control meter
+      - When one faction dominates, zones change: shops of losing faction close, new enemies appear
+      - Full faction victory triggers epilogue and New Game+ option
+      
+      WHY:
+      Faction wars give player agency over world state. Multiple playthroughs to
+      see different outcomes. Emergent narrative: “I helped the Shadow Syndicate
+      take over, now the city is crime-ridden.”
+      
+      FILES MODIFIED:
+      - data/world/faction_zones.json (NEW)
+      - app/components/game_engine/faction_war_system.py
+
+================================================================================
+TIER 23 — QUALITY-OF-LIFE ADDICTIONS [v2.9]
+================================================================================
+
+STATUS: UI/UX enhancements that make the game comfortable and habit-forming.
+
+[23.1] Keyboard Shortcuts (Full Navigation)
+      
+      WHAT:
+      Every action can be triggered by keyboard. No mouse required. Shortcuts
+      for common actions: [A]ttack, [U]se item, [F]lee, [R]est, [I]nventory.
+      
+      HOW:
+      - Key binding configuration in data/config/keybinds.json
+      - Defaults: A = attack, U = use item, F = flee, I = inventory, M = map, Q = quest log
+      - Player can remap keys via settings UI
+      - Shortcuts shown next to buttons
+      - Slash commands: "/heal" also works (see 23.4)
+      
+      WHY:
+      Keyboard shortcuts increase efficiency. Players develop muscle memory.
+      Faster interactions = more engagement loops per minute.
+      
+      FILES MODIFIED:
+      - data/config/keybinds.json (NEW)
+      - app/ui/input_handler.py (keyboard capture)
+      - app/ui/components/* (add shortcut labels)
+
+---
+
+[23.2] Click-to-Repeat (Auto-Repeat Last Action)
+      
+      WHAT:
+      Holding down a key or clicking a “Repeat” button repeats the last action
+      (e.g., attack same enemy, fish again). Reduces repetitive clicking.
+      
+      HOW:
+      - After any action, show “Repeat [action] (Ctrl+R)” button
+      - Clicking repeats the exact same action with same parameters
+      - Repeat delay: 0.5 seconds between repeats (configurable)
+      - Can be disabled in settings
+      
+      WHY:
+      Reduces friction for grindy actions. Players can semi-idle while repeating
+      fishing or combat. Respects player time.
+      
+      FILES MODIFIED:
+      - app/ui/components/game_panel.py (repeat button)
+      - app/game_engine.py (repeat_last_action method)
+
+---
+
+[23.3] Sound Cues (Optional Audio Feedback)
+      
+      WHAT:
+      Optional sound effects for important events: level up, gold earned, enemy
+      defeated, death. Uses system beeps or simple WAV files (no external dependency).
+      
+      HOW:
+      - Settings toggle: “Enable Sound Cues”
+      - Use winsound.Beep(frequency, duration) on Windows, or print('\a') for terminal bell
+      - Different beep patterns: level up = high-low-high, death = long low beep
+      - Player can disable if annoying
+      - No external sound files needed (pure beep codes)
+      
+      WHY:
+      Audio feedback reinforces positive events. Level up beep triggers dopamine.
+      Sound cues help multitasking (hear when fishing catches something).
+      
+      FILES MODIFIED:
+      - app/components/audio/sound_manager.py (NEW)
+      - app/game_engine.py (trigger sounds on events)
+
+---
+
+[23.4] Slash Commands (Typing-Based Interface)
+      
+      WHAT:
+      Players can type commands like “/attack”, “/use potion”, “/fish”. Mimics
+      Discord bot interaction. Great for keyboard-focused players.
+      
+      HOW:
+      - Command parser listens for lines starting with '/'
+      - Commands map to game actions
+      - Examples:
+        /attack → attack current enemy
+        /use health_potion → use item by ID
+        /equip iron_sword → equip item
+        /stats → show player stats
+      - Auto-complete with Tab key (suggest commands)
+      - Command history with Up/Down arrows
+      
+      WHY:
+      Slash commands appeal to power users and Discord bot veterans. Faster than
+      mouse for experienced players. Adds “command line” feel.
+      
+      FILES MODIFIED:
+      - app/ui/command_parser.py (NEW)
+      - data/config/commands.json (command mappings)
+
+---
+
+[23.5] Session & Profile Quick-Switch
+      
+      WHAT:
+      Player can switch between multiple saved profiles without restarting. Useful
+      for families, testing, or playing multiple characters.
+      
+      HOW:
+      - Main menu shows list of profiles
+      - “Switch Profile” button in game options
+      - Save current profile state, load selected profile
+      - No restart required (reload game state)
+      - Quick-switch with Ctrl+Shift+1/2/3 (profile hotkeys)
+      
+      WHY:
+      Encourages multiple playthroughs. Players can have hardcore and casual
+      profiles. Quick-switch reduces friction.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/profile_manager.py (switch method)
+      - app/ui/main_menu.py (profile list)
+
+================================================================================
+TIER 24 — ADVANCED CRAFTING & ECONOMY [v3.0]
+================================================================================
+
+STATUS: Complex crafting trees, item upgrading, and economy depth.
+
+[24.1] Multi-Stage Crafting (Recipes with Subcomponents)
+      
+      WHAT:
+      Complex recipes require crafted items as ingredients. Example: “Iron Sword”
+      requires “Iron Ingot” (smelted from Iron Ore). Adds depth to crafting.
+      
+      HOW:
+      - Recipe hierarchy: Ore → Ingot → Blade → Sword
+      - Each step requires previous crafted item
+      - Crafting UI shows dependency tree
+      - Example: Iron Sword requires 2 Iron Ingots + 1 Leather Strap
+      - Iron Ingot requires 3 Iron Ore + fuel (charcoal)
+      
+      WHY:
+      Multi-stage crafting feels more realistic and rewarding. Players invest in
+      production chains. Longer-term goals.
+      
+      FILES MODIFIED:
+      - data/crafting/recipes.json (expand with dependencies)
+      - app/ui/components/complex/crafting_tree_panel.py (NEW)
+
+---
+
+[24.2] Item Upgrading (Enchanting & Refining)
+      
+      WHAT:
+      Weapons and armor can be upgraded at blacksmith. Each upgrade increases stats
+      but costs materials and gold. Upgrade can fail (destroy item) or succeed.
+      
+      HOW:
+      - Upgrade levels: +1 to +10
+      - Each level: +5% damage/defense
+      - Cost increases exponentially: +1 = 100 gold, +2 = 200 gold, etc.
+      - Failure chance: 10% at +1, 20% at +2, up to 90% at +10
+      - On failure: item destroyed (or downgraded, based on setting)
+      - Safety item: “Scroll of Protection” prevents destruction (rare)
+      
+      WHY:
+      Upgrading creates high-risk high-reward loop. Players chase +10 weapons.
+      Sunk cost: “I already spent 5000 gold upgrading, can't stop now.”
+      
+      FILES MODIFIED:
+      - data/crafting/upgrades.json (NEW)
+      - app/components/game_engine/upgrade_system.py (NEW)
+
+---
+
+[24.3] Market Arbitrage (Buy Low, Sell High)
+      
+      WHAT:
+      Prices vary between locations. Player can buy cheap in one city, sell high
+      in another. Creates trading gameplay loop.
+      
+      HOW:
+      - Each shop has location-specific price multipliers (e.g., Fishing Village: fish -20% price)
+      - Player can transport goods between locations
+      - Requires inventory space and travel time (action cost)
+      - Price updates every few days (dynamic)
+      - Player must discover profitable routes
+      
+      WHY:
+      Trading adds merchant playstyle. Players who enjoy economy can focus on
+      arbitrage instead of combat. Emergent gameplay: “I found a route that makes
+      500 gold per trip!”
+      
+      FILES MODIFIED:
+      - data/economy/location_prices.json (NEW)
+      - app/components/game_engine/trading_system.py (arbitrage)
+
+================================================================================
+TIER 25 — DUNGEON & MAP EXPANSIONS [v3.1]
+================================================================================
+
+STATUS: New dungeon types, world map, and fast travel.
+
+[25.1] Multiple Dungeon Biomes
+      
+      WHAT:
+      Beyond the standard dungeon, add biomes: Forest Dungeon, Ice Cavern,
+      Volcano Keep, Sunken Temple. Each has unique enemies, items, and lore.
+      
+      HOW:
+      - Dungeon selector shows available biomes (unlocked via quests or level)
+      - Each biome has separate progression
+      - Biome-specific enemy pools and loot tables
+      - Boss at end of each biome
+      - Biome completion gives permanent bonus (e.g., Forest: +5% herb drop rate)
+      
+      WHY:
+      Biomes add variety and content depth. Players explore different dungeons
+      for different rewards. Prevents fatigue.
+      
+      FILES MODIFIED:
+      - data/dungeon/biomes/*.json (NEW)
+      - app/components/game_engine/dungeon_generator.py (biome support)
+
+---
+
+[25.2] World Map & Fast Travel
+      
+      WHAT:
+      Overworld map showing all locations. Players can fast travel between
+      discovered locations for a small gold cost (or free if unlocked).
+      
+      HOW:
+      - World map UI with icons for city, dungeon, fishing, farm, etc.
+      - Click location to travel (costs gold unless on foot)
+      - Fast travel cost: 10 gold per zone
+      - Some locations hidden until discovered
+      - Travel time: instant (no action cost, just gold)
+      
+      WHY:
+      World map reduces navigation friction. Players can quickly jump to desired
+      activity. Feels like complete world.
+      
+      FILES MODIFIED:
+      - data/world/map.json (NEW)
+      - app/ui/components/complex/world_map_panel.py (NEW)
+
+---
+
+[25.3] Dynamic Weather & Time of Day
+      
+      WHAT:
+      World has day/night cycle and weather (rain, snow, sunny). Affects gameplay:
+      night increases enemy spawns, rain improves fishing.
+      
+      HOW:
+      - Time tracked in-game (hours, days)
+      - Weather random per day (based on season)
+      - Effects:
+        * Night (18:00-06:00): +20% enemy spawn chance, +10% loot
+        * Rain: +30% fish catch rate
+        * Snow: -10% movement speed (more actions to travel)
+      - UI shows clock and weather icon
+      
+      WHY:
+      Dynamic systems make world feel alive. Players adapt strategies to conditions.
+      “I'll go fishing when it rains.”
+      
+      FILES MODIFIED:
+      - app/components/game_engine/weather_system.py (NEW)
+      - data/world/weather_effects.json
+
+================================================================================
+TIER 26 — MINIGAMES & SIDE ACTIVITIES [v3.2]
+================================================================================
+
+STATUS: Non-combat diversions for variety.
+
+[26.1] Cooking Minigame
+      
+      WHAT:
+      Combine ingredients to cook meals. Meals grant temporary buffs. Simple
+      selection interface (no timing).
+      
+      HOW:
+      - Cooking station in tavern or player home
+      - Recipe list: “Rat Stew” (rat meat + herb) → restores 10 HP
+      - Player selects recipe, consumes ingredients, gets meal item
+      - Meals can be used immediately or stored
+      - Special recipes unlocked via quests
+      
+      WHY:
+      Cooking adds utility to monster drops (meat). Makes hunting more rewarding.
+      Buffs encourage cooking before dungeons.
+      
+      FILES MODIFIED:
+      - data/crafting/cooking_recipes.json (NEW)
+      - app/ui/components/complex/cooking_panel.py
+
+---
+
+[26.2] Arena Fighting (Wave Combat)
+      
+      WHAT:
+      Arena location where player fights waves of enemies. Each wave harder,
+      rewards scale. Endless mode with leaderboard.
+      
+      HOW:
+      - Arena NPC offers “Fight in Arena”
+      - Wave 1: 1 weak enemy, reward 50 gold
+      - Wave 2: 2 enemies, 100 gold
+      - Wave 3: 1 medium enemy, 200 gold
+      - Continue until defeat or retreat
+      - Between waves, option to heal (costs gold) or retreat
+      - High score tracked per profile (highest wave)
+      
+      WHY:
+      Arena provides focused combat challenge. Players test builds. Endless waves
+      create “just one more wave” loop.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/arena_system.py (NEW)
+      - data/arena/waves.json
+
+---
+
+[26.3] Treasure Hunting (Treasure Maps)
+      
+      WHAT:
+      Random treasure maps drop from enemies. Map leads to buried treasure in
+      specific location. Digging yields rare items.
+      
+      HOW:
+      - Map item: “Crude Treasure Map” with clue: “North of the old oak tree in forest”
+      - Player must go to correct location and use “Dig” action
+      - Success: loot chest with 3-5 rare items
+      - Failure (wrong location): nothing
+      - Maps are consumable (used once)
+      
+      WHY:
+      Treasure maps add exploration incentive. Players revisit old locations.
+      Clues feel like puzzle-solving.
+      
+      FILES MODIFIED:
+      - data/items/treasure_maps.json
+      - app/components/game_engine/treasure_hunt.py (NEW)
+
+================================================================================
+TIER 27 — CHARACTER CUSTOMIZATION (DEEPER) [v3.3]
+================================================================================
+
+STATUS: Classes, perks, and appearance options.
+
+[27.1] Character Classes
+      
+      WHAT:
+      Player chooses class at creation: Warrior, Mage, Rogue, Cleric. Each has
+      unique starting stats, abilities, and progression perks.
+      
+      HOW:
+      - Warrior: +10 HP, +2 damage, access to heavy armor
+      - Mage: -5 HP, +5 magic damage, spells
+      - Rogue: +5% crit chance, stealth abilities
+      - Cleric: healing spells, bonus vs undead
+      - Class-locked items (e.g., “Wizard Robe” only for Mage)
+      - Class affects dialogue options with some NPCs
+      
+      WHY:
+      Classes encourage replayability. Different playstyles feel distinct.
+      Players create multiple characters.
+      
+      FILES MODIFIED:
+      - data/player/classes.json (NEW)
+      - app/components/game_engine/class_system.py
+
+---
+
+[27.2] Perk Tree (Passive Bonuses)
+      
+      WHAT:
+      On level-up, player earns perk points to spend in skill tree. Perks give
+      passive bonuses: “+10% gold from enemies”, “+5% crit chance”, etc.
+      
+      HOW:
+      - Perk tree with branches (Combat, Economy, Utility)
+      - Each perk has prerequisites (level, previous perks)
+      - Perk point every 2 levels (25 points total by level 50)
+      - Perks examples:
+        * Combat: “Weapon Mastery” (+5% damage), “Toughness” (+10 HP)
+        * Economy: “Greed” (+10% gold), “Merchant Friend” (5% discount)
+        * Utility: “Fast Learner” (+5% XP), “Pack Rat” (+5 inventory slots)
+      - Respec option for gold (expensive)
+      
+      WHY:
+      Perk tree gives long-term progression choices. Players specialize builds.
+      Respec encourages experimentation.
+      
+      FILES MODIFIED:
+      - data/player/perks.json (NEW)
+      - app/components/game_engine/perk_system.py
+
+---
+
+[27.3] Pet Companions (Cosmetic + Utility)
+      
+      WHAT:
+      Player can adopt pets (cat, dog, raven). Pets provide small passive bonuses
+      (e.g., cat: +1% crit, dog: +5 inventory slots). Purely optional.
+      
+      HOW:
+      - Pet vendor in city
+      - Pet follows player (text description: “Your cat meows.”)
+      - Each pet has unique bonus
+      - Pets cannot die (cosmetic only)
+      - Can switch pets anytime
+      
+      WHY:
+      Pets increase emotional attachment. Players name their pets. Small bonuses
+      feel rewarding without being mandatory.
+      
+      FILES MODIFIED:
+      - data/npcs/pets.json (NEW)
+      - app/components/game_engine/pet_system.py
+
+================================================================================
+TIER 28 — ENDGAME & PRESTIGE SYSTEMS [v3.4]
+================================================================================
+
+STATUS: Content for players who reach max level and want more.
+
+[28.1] Paragon Levels (Infinite Progression)
+      
+      WHAT:
+      After reaching level 50, player earns Paragon levels. Each Paragon level
+      gives a small stat increase (+1 HP, +0.2 damage). No cap.
+      
+      HOW:
+      - XP bar continues after level 50
+      - Paragon level = total XP beyond 50 / 10000 XP
+      - Each Paragon level: +1 HP, +0.2 damage, +1% gold
+      - UI shows “Paragon 15” next to level
+      - Leaderboard tracks Paragon level
+      
+      WHY:
+      Paragon gives endless progression. Hardcore players grind for high Paragon.
+      “Just one more level” loop continues forever.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/level_system.py (paragon logic)
+      - data/player/paragon_scaling.json
+
+---
+
+[28.2] Mythic Dungeons (Ultra-Hard Mode)
+      
+      WHAT:
+      After completing all biomes, Mythic difficulty unlocks. Enemies have 5x HP,
+      special abilities, and drop exclusive mythic gear.
+      
+      HOW:
+      - Mythic dungeon toggle (requires level 50 and all biomes cleared)
+      - Enemies: +400% HP, +200% damage, new abilities
+      - Loot: Mythic rarity items (legendary+)
+      - Death in Mythic = profile deleted (optional hardcore)
+      - Completion gives “Mythic Conqueror” title and special reward
+      
+      WHY:
+      Mythic dungeons challenge veteran players. Exclusive rewards create status.
+      Ultimate test of character strength.
+      
+      FILES MODIFIED:
+      - data/dungeon/mythic_scaling.json
+      - app/components/game_engine/difficulty_system.py (mythic mode)
+
+---
+
+[28.3] Legacy System (Bonuses for New Characters)
+      
+      WHAT:
+      Completing achievements and milestones unlocks Legacy bonuses for future
+      characters. Example: “Reach level 50” → new characters start with +10 HP.
+      
+      HOW:
+      - Legacy points earned from achievements (1 per achievement)
+      - Legacy shop: spend points on account-wide bonuses
+        * +5% XP (cost 5 points)
+        * Start with 500 gold (cost 10 points)
+        * +1 perk point (cost 15 points)
+      - Bonuses apply to all new characters
+      - Existing characters unaffected
+      
+      WHY:
+      Legacy system rewards long-term play. Each new playthrough becomes easier
+      or more interesting. Encourages multiple characters.
+      
+      FILES MODIFIED:
+      - data/player/legacy_bonuses.json
+      - app/components/game_engine/legacy_system.py
+
+================================================================================
+TIER 29 — MODDING & COMMUNITY CONTENT (ENHANCED) [v3.5]
+================================================================================
+
+STATUS: Tools and formats for player-created content.
+
+[29.1] JSON Schema Validation
+      
+      WHAT:
+      Provide JSON schema files for all data types. Modders can validate their
+      custom content before loading. Prevents crashes from malformed JSON.
+      
+      HOW:
+      - Schemas in data/schemas/ directory
+      - Example: enemy_schema.json, item_schema.json, quest_schema.json
+      - Game validates modded JSON against schema on load
+      - If validation fails: skip file, log error, continue
+      - Player sees error message: “Mod file enemies_custom.json: missing required field 'damage_min'”
+      
+      WHY:
+      Schemas make modding safer and easier. Modders get immediate feedback.
+      Reduces support requests for broken mods.
+      
+      FILES MODIFIED:
+      - data/schemas/*.json (NEW)
+      - app/utils/json_validator.py
+
+---
+
+[29.2] Mod Loader with Priority
+      
+      WHAT:
+      Game loads mods from /mods/ folder. Mods can override base data or add new.
+      Load order determines conflicts (last loaded wins).
+      
+      HOW:
+      - /mods/ folder structure: each mod has its own subfolder
+      - Manifest.json in mod folder: name, version, priority (1-100)
+      - Load order: by priority (higher number overrides lower)
+      - Override rules: entire files or individual entries (by ID)
+      - Example: mods/mod_my_weapons/items.json adds new items
+      - Game merges data (new items added, existing overwritten if same ID)
+      
+      WHY:
+      Mod loader allows players to mix and match community mods. Override system
+      gives control. Enables total conversions.
+      
+      FILES MODIFIED:
+      - app/components/mod_loader.py (NEW)
+      - data/config/mod_settings.json
+
+---
+
+[29.3] Built-in Mod Editor (Text-Based)
+      
+      WHAT:
+      Simple in-game editor for creating/modifying JSON data. Players can tweak
+      values without external tools.
+      
+      HOW:
+      - Developer mode toggle in settings (hidden by default)
+      - “Edit Data” button in main menu
+      - Browse data categories (enemies, items, etc.)
+      - Edit JSON fields in text area (with syntax highlighting)
+      - Save changes (writes to /mods/override/ folder, not base data)
+      - Reload game data to apply
+      
+      WHY:
+      In-game editor lowers barrier to modding. Players can adjust difficulty,
+      create custom items, fix bugs themselves. Empowers community.
+      
+      FILES MODIFIED:
+      - app/ui/developer/data_editor.py (NEW)
+      - app/game_engine.py (hot-reload data)
+
+================================================================================
+TIER 30 — ACCESSIBILITY & LOCALIZATION [v3.6]
+================================================================================
+
+STATUS: Game accessible to wider audience.
+
+[30.1] Colorblind Modes
+      
+      WHAT:
+      UI color schemes for different colorblindness types (protanopia, deuteranopia,
+      tritanopia). Changes text highlights and status colors.
+      
+      HOW:
+      - Settings > Accessibility > Colorblind Mode
+      - Options: None, Protanopia, Deuteranopia, Tritanopia
+      - Applies to UI elements (HP bar colors, buff/debuff text)
+      - Uses predefined color palettes
+      
+      WHY:
+      Ensures all players can distinguish UI states. Basic accessibility requirement.
+      
+      FILES MODIFIED:
+      - app/ui/themes/colorblind_themes.py
+      - data/config/accessibility.json
+
+---
+
+[30.2] Font Size & High Contrast
+      
+      WHAT:
+      Adjustable font size and high contrast mode for visually impaired players.
+      
+      HOW:
+      - Font size slider (12px to 32px)
+      - High contrast toggle: black background, white text, no gray
+      - Settings persist across sessions
+      - UI reflows to accommodate larger text
+      
+      WHY:
+      Improves readability for older players or low-vision users.
+      
+      FILES MODIFIED:
+      - app/ui/theme_manager.py (font scaling)
+      - data/config/accessibility.json (font_size, high_contrast)
+
+---
+
+[30.3] Localization Framework
+      
+      WHAT:
+      All game text externalized to language files. Community can translate
+      game to other languages.
+      
+      HOW:
+      - Text strings in data/localization/en.json
+      - Each string has a key (e.g., “combat.attack.success”: “You deal {damage} damage!”)
+      - Game loads language file based on settings
+      - Community provides translations as JSON files
+      - Fallback to English if key missing
+      
+      WHY:
+      Localization opens game to non-English speakers. Community-driven translations
+      reduce developer workload.
+      
+      FILES MODIFIED:
+      - data/localization/en.json (NEW)
+      - app/utils/localization.py
+
+================================================================================
+TIER 31 — STATISTICS & ANALYTICS (PLAYER-FACING) [v3.7]
+================================================================================
+
+STATUS: Detailed player stats and history tracking.
+
+[31.1] Detailed Play Statistics
+      
+      WHAT:
+      Track and display hundreds of stats: total damage dealt, most killed enemy,
+      favorite location, average dungeon depth, etc.
+      
+      HOW:
+      - Statistics panel in profile
+      - Categories: Combat, Economy, Exploration, Idle, Gambling
+      - Examples:
+        * Combat: Enemies defeated (total), damage dealt, critical hits
+        * Economy: Gold earned/spent, most expensive purchase
+        * Exploration: Rooms explored, furthest depth
+        * Idle: Time spent fishing, fish caught
+      - Charts (text-based bar graphs)
+      
+      WHY:
+      Statistics appeal to data-loving players. Seeing numbers go up is addictive.
+      Players compare stats with friends.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/statistics.py (NEW)
+      - data/player/statistics.json (tracked data)
+
+---
+
+[31.2] Session History (Journal)
+      
+      WHAT:
+      Automatic journal of major events per session. Player can review what
+      happened: “Defeated Rat (10 gold)”, “Found Iron Sword”, “Died to Goblin.”
+      
+      HOW:
+      - Journal panel shows last 100 events
+      - Timestamped entries
+      - Filter by type (combat, loot, travel, death)
+      - Journal persists across sessions (rolling log)
+      - Export journal to text file
+      
+      WHY:
+      Journal helps players remember what they did. Useful for tracking progress
+      and sharing stories (“Look at this insane loot chain!”).
+      
+      FILES MODIFIED:
+      - app/components/game_engine/journal.py (NEW)
+      - data/player/journal.json
+
+---
+
+[31.3] Death Recap & Analysis
+      
+      WHAT:
+      When player dies, show detailed recap: damage taken per enemy, missed
+      opportunities, suggested improvements.
+      
+      HOW:
+      - Death screen shows:
+        * Total damage taken
+        * Largest hit received
+        * Potions remaining (unused)
+        * “You could have used a potion on turn 3”
+        * Enemy stats (damage range)
+      - Option to “Learn More” (tips for that enemy)
+      - Encourages player improvement
+      
+      WHY:
+      Death recap reduces frustration. Players learn from mistakes. Turns death
+      into learning opportunity.
+      
+      FILES MODIFIED:
+      - app/ui/components/complex/death_recap.py (NEW)
+      - app/components/game_engine/combat_logger.py
+
+================================================================================
+TIER 32 — SOCIAL FEATURES (OFFLINE MULTIPLAYER SIMULATION) [v3.8]
+================================================================================
+
+STATUS: Simulated social interactions without real servers.
+
+[32.1] Friend Profiles (Import/Export)
+      
+      WHAT:
+      Players can export their profile to a file and share with friends. Friend
+      imports profile as a “friend” in their game, appearing in leaderboards.
+      
+      HOW:
+      - Export button: creates profile_name.json in /exports/
+      - Friend copies file to /imported_friends/
+      - Game loads friend profiles as bots
+      - Friend's stats appear in leaderboard and rival system
+      - Can have up to 20 imported friends
+      
+      WHY:
+      Sharing profiles creates social connection. Players compete directly with
+      friends' actual stats. No server needed.
+      
+      FILES MODIFIED:
+      - app/components/social/profile_import_export.py (NEW)
+      - data/social/imported_friends/*.json
+
+---
+
+[32.2] Guild Chat Simulation (NPC Chat Room)
+      
+      WHAT:
+      Fake chat room with NPCs from player's guild. NPCs post messages about
+      game events, give tips, and react to player achievements.
+      
+      HOW:
+      - Chat panel shows messages from NPCs
+      - Example: “Marcus: Congrats on level 10!”
+      - Messages triggered by events (level up, boss kill, rare loot)
+      - Predefined message templates with variables
+      - Player can “send” messages (but NPCs don't respond intelligently)
+      - Feels like multiplayer guild chat
+      
+      WHY:
+      Simulated chat reduces loneliness. Players feel part of community even
+      offline. NPC reactions reinforce achievements.
+      
+      FILES MODIFIED:
+      - data/social/guild_chat_messages.json
+      - app/components/social/guild_chat.py (NEW)
+
+---
+
+[32.3] Trading Post (Asynchronous Trading)
+      
+      WHAT:
+      Players can leave items for “other players” (actually their own other
+      profiles or imported friends). List item, set price, wait for purchase.
+      
+      HOW:
+      - Trading post UI shows items from all profiles (including imported friends)
+      - Player lists item from one profile, price in gold
+      - Another profile (same player or imported) can buy it
+      - Gold transferred, item removed from seller's inventory
+      - Cross-profile trading enables self-funding alts
+      
+      WHY:
+      Trading post enables economy between player's own characters. Feels like
+      multiplayer market. Encourages multiple playthroughs.
+      
+      FILES MODIFIED:
+      - app/components/social/trading_post.py (NEW)
+      - data/social/trading_listings.json
+
+================================================================================
+TIER 33 — CHALLENGES & IRONMAN MODES [v3.9]
+================================================================================
+
+STATUS: Self-imposed difficulty modes with tracking.
+
+[33.1] Ironman Mode (No Trading, No Save Scumming)
+      
+      WHAT:
+      Character cannot use shops, trading, or any external aid. Must rely on
+      loot only. Flag tracked in profile.
+      
+      HOW:
+      - Ironman checkbox on creation
+      - Restrictions: no buying from shops, no selling (or limited), no using trading post
+      - Can still sell junk for gold? (optional rule: selling only to clear inventory)
+      - Ironman leaderboard separate
+      - Achievements: “Ironman Champion” (reach level 50)
+      
+      WHY:
+      Ironman mode increases difficulty for veterans. Feels more rewarding to
+      progress with self-found gear. Popular in RPG communities.
+      
+      FILES MODIFIED:
+      - data/player/ironman_rules.json
+      - app/components/game_engine/ironman_check.py
+
+---
+
+[33.2] Speedrun Mode (Timed Runs)
+      
+      WHAT:
+      Dungeon runs timed from entry to boss defeat. Timer displayed. Best times
+      saved per seed and difficulty.
+      
+      HOW:
+      - Timer starts when entering dungeon
+      - Timer stops when boss defeated (or player dies/leaves)
+      - Display current time during run
+      - Save best time for each seed/difficulty
+      - Leaderboard for fastest times (local)
+      - Achievements for sub-5 minute runs
+      
+      WHY:
+      Speedrunning adds competitive replayability. Players optimize routes and
+      builds. Community shares fastest times.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/speedrun_timer.py (NEW)
+      - data/player/best_times.json
+
+---
+
+[33.3] Randomizer Mode (Item & Enemy Shuffle)
+      
+      WHAT:
+      Shuffles item locations, enemy spawns, and shop inventories. New players
+      cannot rely on wiki knowledge. Creates fresh experience.
+      
+      HOW:
+      - Randomizer toggle on new game
+      - Shuffle seed determines randomization
+      - Items: which enemy drops what is randomized
+      - Shop inventory: items appear in random shops
+      - Enemy stats: slight variations (±20%)
+      - Leaderboard for randomizer runs
+      
+      WHY:
+      Randomizer gives infinite replayability. Veterans who memorized game face
+      new challenges. Community shares interesting seeds.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/randomizer.py (NEW)
+      - data/player/randomizer_seeds.json
+
+================================================================================
+TIER 34 — PERFORMANCE & OPTIMIZATION [v4.0]
+================================================================================
+
+STATUS: Game runs smoothly on low-end hardware.
+
+[34.1] Lazy Loading & Caching
+      
+      WHAT:
+      Game loads JSON data only when needed. Caches frequently accessed data.
+      Reduces memory usage and startup time.
+      
+      HOW:
+      - DataManager loads files on first access, not all at startup
+      - Cache size limit (50MB)
+      - Least Recently Used eviction
+      - Preload critical files (player state, config)
+      - Startup time under 1 second
+      
+      WHY:
+      Fast startup keeps players engaged. Low memory usage allows running on
+      old computers or Raspberry Pi.
+      
+      FILES MODIFIED:
+      - app/utils/data_manager.py (lazy loading)
+      - app/utils/cache.py
+
+---
+
+[34.2] Save File Compression
+      
+      WHAT:
+      Compress profile saves using gzip. Reduces disk usage from MB to KB.
+      
+      HOW:
+      - Save files use .json.gz extension
+      - Read/write with gzip compression
+      - Backward compatibility: can read uncompressed .json
+      - Compression level 6 (balanced speed/size)
+      - Example: 5MB profile compresses to 200KB
+      
+      WHY:
+      Smaller save files faster to read/write. Players can have many profiles.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/save_manager.py (compression)
+
+---
+
+[34.3] Asynchronous Auto-Save
+      
+      WHAT:
+      Game auto-saves in background thread every 60 seconds. No UI freeze.
+      
+      HOW:
+      - Threading.Timer triggers auto-save
+      - Copy game state to temporary object, save in background
+      - Main game loop continues uninterrupted
+      - On crash or force quit, last auto-save recoverable
+      - Auto-save frequency configurable
+      
+      WHY:
+      Prevents progress loss. No noticeable performance hit. Players never lose
+      more than 60 seconds of progress.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/auto_save.py (async)
+
+================================================================================
+TIER 35 — COMMAND LINE INTERFACE & HEADLESS MODE [v4.1]
+================================================================================
+
+STATUS: Game can run in terminal without GUI, for servers or low-end devices.
+
+[35.1] Full CLI Mode
+      
+      WHAT:
+      Game can be played entirely via command line. No graphical UI. Input via
+      text commands, output printed to console.
+      
+      HOW:
+      - Launch with --cli flag
+      - All UI replaced with text prompts
+      - Commands: same as slash commands (see 23.4)
+      - Output formatted for terminal (colors optional)
+      - Compatible with screen readers
+      
+      WHY:
+      CLI mode for accessibility, remote play via SSH, and minimal resource usage.
+      
+      FILES MODIFIED:
+      - app/cli/main.py (NEW)
+      - app/cli/command_handlers.py
+
+---
+
+[35.2] Scriptable Bot (Auto-Play via Scripts)
+      
+      WHAT:
+      Players can write Python scripts to automate gameplay. Bot runs in headless
+      mode, executes script, logs results. For power users.
+      
+      HOW:
+      - Script API: game.get_state(), game.attack(), game.use_item(), etc.
+      - Scripts placed in /scripts/ folder
+      - Run script: python main.py --script farm_gold.py
+      - Bot plays automatically, saves progress
+      - Can run overnight for idle farming
+      - Anti-abuse: optional daily limits per profile
+      
+      WHY:
+      Scripting appeals to technical players. Automates grinding. Turns game into
+      programming challenge.
+      
+      FILES MODIFIED:
+      - app/api/scripting_api.py (NEW)
+      - docs/scripting.md
+
+================================================================================
+TIER 36 — META PROGRESSION & COLLECTIBLES [v4.2]
+================================================================================
+
+STATUS: Account-wide collectibles that persist across characters.
+
+[36.1] Artifact Gallery
+      
+      WHAT:
+      Rare “Artifact” items that, once collected on any character, permanently
+      unlock account-wide bonuses. Encourages collecting across playthroughs.
+      
+      HOW:
+      - Artifacts in data/collectibles/artifacts.json
+      - Example: “Eye of the Dragon” → +5% fire resistance (account-wide)
+      - Artifact found as ultra-rare drop (0.1%)
+      - Once collected, bonus applies to all current and future characters
+      - Gallery UI shows collected artifacts and missing ones
+      - Completion: collect all 50 artifacts → “Curator” title
+      
+      WHY:
+      Artifacts create long-term chase across multiple characters. Players start
+      new characters to hunt specific artifacts.
+      
+      FILES MODIFIED:
+      - data/collectibles/artifacts.json (NEW)
+      - app/components/game_engine/artifact_system.py
+
+---
+
+[36.2] Music & Soundtrack Unlocks (Cosmetic Audio)
+      
+      WHAT:
+      Players can unlock different background music tracks (simple MIDI beeps)
+      as rewards. Changes audio ambiance.
+      
+      HOW:
+      - Music tracks defined in data/audio/music.json (simple beep sequences)
+      - Unlock tracks via achievements, quests, or purchase
+      - Player selects active track in settings
+      - No external audio files; uses system beep patterns
+      - Example: “Battle Theme” (fast beeps) unlocks after 100 enemy defeats
+      
+      WHY:
+      Audio unlocks add cosmetic progression. Players customize experience.
+      Nostalgic chiptune feel.
+      
+      FILES MODIFIED:
+      - data/audio/music.json (NEW)
+      - app/audio/music_player.py
+
+================================================================================
+TIER 37 — PLAYER HOUSING & DECORATION [v4.3]
+================================================================================
+
+STATUS: Personal space to display achievements and store items.
+
+[37.1] Player House (Purchasable)
+      
+      WHAT:
+      Player can buy a house in the city. House serves as home base: free rest,
+      item storage, display trophies.
+      
+      HOW:
+      - House purchase: 5000 gold (small), 20000 gold (large)
+      - House has: bed (rest for free), chest (extra inventory), trophy wall
+      - Resting in house is free (no tavern cost)
+      - Chest: 50 slots of permanent storage (separate from inventory)
+      - House upgrades: more storage, crafting table, garden
+      
+      WHY:
+      Housing gives long-term gold sink. Players feel ownership. Customization
+      adds emotional attachment.
+      
+      FILES MODIFIED:
+      - data/location/player_house.json
+      - app/components/game_engine/housing_system.py (NEW)
+
+---
+
+[37.2] Trophy Display (Showcase Achievements)
+      
+      WHAT:
+      Special achievements (boss kills, rare loot) place trophies in player house.
+      Visitors (NPCs) comment on them.
+      
+      HOW:
+      - On achievement unlock: add trophy object to house
+      - Trophy wall shows icons and descriptions
+      - Example: “Dragon Head” trophy after killing dragon boss
+      - NPCs who visit say: “Wow, you really killed that dragon?”
+      - Full trophy collection (all bosses) gives “Legendary Collector” title
+      
+      WHY:
+      Trophies visually (textually) represent accomplishments. Players strive to
+      fill their trophy wall.
+      
+      FILES MODIFIED:
+      - data/housing/trophies.json
+      - app/components/game_engine/trophy_system.py
+
+================================================================================
+TIER 38 — DYNAMIC DIFFICULTY ADAPTATION [v4.4]
+================================================================================
+
+STATUS: Game adjusts challenge based on player skill.
+
+[38.1] Adaptive Enemy Scaling (Optional)
+      
+      WHAT:
+      Optional mode where enemy strength scales with player level. Prevents
+      over-leveled players from one-shotting everything.
+      
+      HOW:
+      - Setting: “Adaptive Difficulty” (off by default)
+      - Enemy HP = base HP * (player level / expected level for zone)
+      - Reward scaling: XP and gold also scale up
+      - Prevents boredom from trivial content
+      - Can be turned on/off mid-game
+      
+      WHY:
+      Adaptive scaling keeps game challenging. Players who grind don't outlevel
+      content. Rewards scale to match effort.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/difficulty_system.py (adaptive)
+      - data/config/adaptive_scaling.json
+
+---
+
+[38.2] Player Skill Rating (Hidden MMR)
+      
+      WHAT:
+      Game tracks player performance (death frequency, clear speed, resource
+      management) and adjusts recommended difficulty. Non-intrusive.
+      
+      HOW:
+      - MMR calculated from: deaths per 10 runs, average potion usage, clear time
+      - MMR range: 0-1000
+      - New players start at 500
+      - UI suggests: “Based on your skill, try Hard difficulty”
+      - No penalty; just recommendation
+      
+      WHY:
+      Helps players find appropriate challenge. Reduces frustration from too-hard
+      or too-easy content.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/skill_rating.py (NEW)
+
+================================================================================
+TIER 39 — CROSS-SAVE & PORTABILITY [v4.5]
+================================================================================
+
+STATUS: Save files work across devices.
+
+[39.1] Cloud-Agnostic Save Sync (Manual)
+      
+      WHAT:
+      Player can export save to file and import on another device. No automatic
+      cloud; user manages via Dropbox/USB.
+      
+      HOW:
+      - Export profile to .pursuit_save file (encrypted JSON)
+      - Import from file on other device
+      - Cross-version compatibility: older saves work on newer versions
+      - Version migration scripts for breaking changes
+      
+      WHY:
+      Players want to continue on laptop after playing on desktop. Manual sync
+      respects privacy.
+      
+      FILES MODIFIED:
+      - app/components/game_engine/save_export.py
+
+---
+
+[39.2] Web Version (Same Codebase)
+      
+      WHAT:
+      Game runs in browser via PyScript or transcrypt. Same JSON data works.
+      
+      HOW:
+      - Use PyScript to run Python in browser
+      - Local storage for save files (browser's IndexedDB)
+      - No backend required; fully client-side
+      - Same JSON modding works (upload mod files via file input)
+      
+      WHY:
+      Web version increases accessibility. Play on any device with browser.
+      No installation.
+      
+      FILES MODIFIED:
+      - web/index.html
+      - web/main.py (PyScript entry point)
+
+================================================================================
+TIER 40 — FINAL POLISH & DOCUMENTATION [v5.0]
+================================================================================
+
+STATUS: Game ready for 1.0 release. Complete documentation.
+
+[40.1] Comprehensive Player Manual
+      
+      WHAT:
+      In-game help system with searchable documentation. Covers all mechanics,
+      items, enemies, and tips.
+      
+      HOW:
+      - Help panel with categories (Combat, Economy, Crafting, etc.)
+      - Search functionality
+      - Tooltips on hover for any UI element
+      - Context-sensitive help (press F1 on any screen)
+      - Links to community wiki (external, optional)
+      
+      WHY:
+      Reduces player confusion. New players can learn without external guides.
+      Accessible.
+      
+      FILES MODIFIED:
+      - data/help/*.json (NEW)
+      - app/ui/help_system.py
+
+---
+
+[40.2] Modding Documentation & Examples
+      
+      WHAT:
+      Full documentation for modders: how to add enemies, items, quests, etc.
+      Example mods included.
+      
+      HOW:
+      - /docs/modding/ directory with markdown files
+      - Example mods in /examples/mods/
+      - Tutorial: “Create a Custom Enemy in 5 Minutes”
+      - Video tutorials (links)
+      - Community mod showcase in README
+      
+      WHY:
+      Lowers barrier for modding. Encourages community content. Game longevity.
+      
+      FILES MODIFIED:
+      - docs/modding/*.md (NEW)
+      - examples/mods/*.json
+
+---
+
+[40.3] Release Build & Installer
+      
+      WHAT:
+      Standalone executable for Windows, macOS, Linux. One-click install.
+      No Python required.
+      
+      HOW:
+      - Package with PyInstaller or Nuitka
+      - Single .exe (Windows), .app (macOS), .AppImage (Linux)
+      - Installer includes example mods and default JSON
+      - Auto-updater (optional, checks GitHub for new version)
+      
+      WHY:
+      Easy installation for non-technical users. Wider audience.
+      
+      FILES MODIFIED:
+      - build_scripts/ (NEW)
+      - README.md (installation instructions)
