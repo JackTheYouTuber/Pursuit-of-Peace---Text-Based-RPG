@@ -80,4 +80,4 @@ logs/                       Session log files (auto-created)
 docs/                       Project documentation
 ```
 
-See `Docs/ARCHITECTURE.md` for a full breakdown of the source tree.
+See `docs/ARCHITECTURE.md` for a full breakdown of the source tree.
