@@ -16,7 +16,7 @@ A single-player, turn-based text RPG built with Python and Tkinter. You play as 
 
 -  **Play on Itch.io**: [jacktheyoutuber.itch.io/pursuit-of-peace](https://jacktheyoutuber.itch.io/pursuit-of-peace)
 -  **Discord**: [Join the community](https://discord.gg/HPVcBv5Dma)
--  **Subreddit**: [r/PursuitOfPeace](https://www.reddit.com/r/PursuitOfPeace/)
+-  **Subreddit**: [r/PursuitOfPeaceGame](https://www.reddit.com/r/PursuitOfPeaceGame/)
 
 ---
 
