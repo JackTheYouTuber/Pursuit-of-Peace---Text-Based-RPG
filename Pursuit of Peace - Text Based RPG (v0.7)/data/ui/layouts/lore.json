@@ -1,7 +1,0 @@
-{
-  "type": "LorePanel",
-  "name": "lore_panel",
-  "data": {
-    "entries_source": "lore.entries"
-  }
-}
