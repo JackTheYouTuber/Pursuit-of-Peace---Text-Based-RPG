@@ -1140,3 +1140,1352 @@ STATUS: World feels alive. Random events create surprise and engagement.
      FILES MODIFIED:
      - data/events/events.json (add dungeon events)
      - app/components/game_engine/dungeon_manager.py (trigger on room enter)
+
+[5.2] Wandering Merchant Events
+      
+      WHAT:
+      Random chance on city streets: a Wandering Merchant appears with unique items
+      for sale. Only available for one visit. Creates urgency: "Buy now or lose the
+      chance forever (until next spawn)."
+      
+      HOW:
+      - Event trigger: 5% chance when entering city
+      - Merchant has random 4-5 items from "rare_merchant_pool" in items.json
+      - Each session's merchant is different (unique inventory)
+      - Items are expensive (20-30% above normal prices)
+      - Merchant stays for exactly 1 visit, then despawns
+      - If player leaves city and returns, new random merchant or none
+      
+      WHY:
+      FOMO (fear of missing out) is a powerful engagement hook. Limited-time merchants
+      create urgency to buy, explore, or save for that perfect item. Encourages
+      replaying city sections.
+      
+      FILES:
+      - app/components/game_engine/event_system.py (merchant spawn event)
+      - data/events/events.json (merchant_spawn event definition)
+      - data/shop/rare_items.json (merchant pool)
+
+---
+
+[5.3] Random Ambush Events in Dungeons
+      
+      WHAT:
+      While exploring dungeons, random chance to be ambushed by multiple weak enemies.
+      Not a guaranteed dungeon room but a random interrupt. If you survive, you get
+      bonus loot. Creates tension and variety in dungeon runs.
+      
+      HOW:
+      - Trigger: 8% chance when entering a new dungeon room
+      - Spawn 2-4 weak enemies that must be defeated
+      - Waves: defeat all 3 enemies to pass through
+      - Bonus loot: defeated ambush enemies drop double loot
+      - Can flee ambush (back to last safe room)
+      - If you die: ambush ends run
+      
+      WHY:
+      Keeps dungeon runs unpredictable. Without ambushes, pattern recognition
+      becomes boring. Ambushes force players to stay alert and manage resources.
+      Bonus loot incentivizes fighting through (risk/reward).
+      
+      FILES:
+      - app/components/game_engine/dungeon_manager.py (ambush trigger)
+      - app/components/game_engine/combat_system.py (multi-enemy combat)
+      - data/events/events.json (ambush event)
+
+---
+
+[5.4] Treasure Chest & Loot Cache Events
+      
+      WHAT:
+      Sometimes instead of a combat encounter, a room contains a treasure chest
+      with random items inside. Opening chest gives 1-3 items but has a "trap"
+      chance: 20% chance the trap triggers and inflicts debuff (poison, curse).
+      Risk/reward: do you open it?
+      
+      HOW:
+      - Trigger: replaces some normal combat encounters (15% chance)
+      - UI shows: "You see a glowing chest!"
+      - Options: "Open Chest" or "Ignore and Leave"
+      - If open: roll trap chance
+        * 80%: "Chest opens safely! Found: [item], [item]"
+        * 20%: "TRAP! Chest was cursed! You take 10 damage + poison debuff"
+      - Items roll from dungeon_loot_table
+      - Multiple items possible (1-3 random)
+      
+      WHY:
+      Adds variety to dungeon exploration. Not every room is combat. Creates
+      decision-making: risk debuff for potential loot? Engaging tension point.
+      
+      FILES:
+      - app/components/game_engine/dungeon_manager.py (chest event)
+      - app/components/game_engine/view_builder.py (chest UI)
+      - data/events/events.json (treasure_chest event)
+
+================================================================================
+TIER 6 — FISHING & IDLE ACTIVITIES [v1.2]
+================================================================================
+
+STATUS: Non-combat progression added. Idle loops for AFK engagement.
+
+[6.1] Fishing Minigame System
+      
+      WHAT:
+      Fishing location allows players to "cast line" and wait for catches. Every
+      10 seconds (real time), check if something bit. 60% chance per check for a
+      catch. Caught fish can be sold for gold or used as ingredients. Fishing is
+      "idle" activity: you can do it AFK and come back to results.
+      
+      HOW:
+      
+      STEP 1: Fishing state:
+        player_state = {
+          ...
+          "fishing_active": False,
+          "fishing_start_time": None,
+          "fish_caught_this_session": 0
+        }
+      
+      STEP 2: Start fishing:
+        def start_fishing(player_state):
+          if player_state["fishing_active"]:
+            return player_state, "Already fishing."
+          player_state["fishing_active"] = True
+          player_state["fishing_start_time"] = current_time()
+          return player_state, "You cast your line into the water..."
+      
+      STEP 3: Fishing check (runs every 10 seconds in background):
+        def check_fishing(player_state):
+          if not player_state["fishing_active"]:
+            return
+          time_since_cast = current_time() - player_state["fishing_start_time"]
+          if time_since_cast % 10 == 0:  // every 10 seconds
+            if random() < 0.6:  // 60% catch rate
+              fish = random_choice(FISH_POOL)
+              player_state["inventory"].append(fish)
+              player_state["fish_caught_this_session"] += 1
+              notify_player(f"You caught a {fish['name']}!")
+      
+      STEP 4: Stop fishing:
+        def stop_fishing(player_state):
+          if not player_state["fishing_active"]:
+            return player_state, "You're not fishing."
+          player_state["fishing_active"] = False
+          total = player_state["fish_caught_this_session"]
+          return player_state, f"You reel in and caught {total} fish!"
+      
+      WHY:
+      Idle activities are addictive engagement hooks. Players can "leave game running"
+      and accumulate resources AFK. Creates FOMO: "I should go check fishing results!"
+      Idle mechanics are proven in mobile gaming (Clicker Heroes, Adventure Capitalist).
+      
+      INSPIRATION:
+      - Runescape: AFK fishing earns XP passively
+      - Stardew Valley: fishing is relaxing alternative to combat
+      - Discord bots: "cast" command that returns results when checked
+      
+      FILES:
+      - app/components/game_engine/location_actions.py (fishing methods)
+      - app/components/game_engine/idle_system.py (NEW - background fishing ticks)
+      - data/location/fishing_spot.json (fish pool definitions)
+
+---
+
+[6.2] Fish Types & Rarity Pool
+      
+      WHAT:
+      Different fish species with different rarity and sell prices. Common fish
+      (trout, carp) sell for 5-10 gold. Rare fish (kingfish, catfish) sell for
+      50-100 gold. This creates incentive to keep fishing longer for rare catches.
+      
+      HOW:
+      - Define fish in data/items/fish.json:
+        {
+          "id": "item_trout_01",
+          "name": "Trout",
+          "type": "fish",
+          "rarity": "common",
+          "value": 8
+        },
+        {
+          "id": "item_kingfish_01",
+          "name": "Kingfish",
+          "type": "fish",
+          "rarity": "rare",
+          "value": 75
+        }
+      
+      - Fishing pool: 70% common, 25% uncommon, 5% rare
+      - All fish are sellable (convert to gold at marketplace)
+      
+      WHY:
+      Rarity creates engagement. Players remember: "I need to fish for kingfish!"
+      Creates secondary progression system independent of combat. Some players prefer
+      fishing to dungeon grinding.
+      
+      FILES:
+      - data/items/fish.json (fish definitions)
+      - data/location/fishing_spot.json (fishing pool with weights)
+
+---
+
+[6.3] Crafting System (Fish-Based Recipes)
+      
+      WHAT:
+      Alchemy Hall offers simple crafting. Mix caught fish + herbs to create
+      potions. Example: "Trout + Water Lily = Health Potion." Recipes are simple
+      (2-3 ingredients max). Crafting is manual (player selects recipe and clicks
+      craft), not automatic.
+      
+      HOW:
+      
+      STEP 1: Recipe structure in data/crafting/recipes.json:
+        {
+          "id": "recipe_health_potion_01",
+          "name": "Health Potion (Basic)",
+          "ingredients": [
+            {"item_id": "item_trout_01", "quantity": 1},
+            {"item_id": "item_water_lily_01", "quantity": 1}
+          ],
+          "result_item": "item_potion_health_01",
+          "result_quantity": 1,
+          "description": "Combine fresh fish and water lily to create a healing draught."
+        }
+      
+      STEP 2: Crafting UI:
+        - Show list of available recipes
+        - Show required ingredients (check if player has them)
+        - Show result
+        - Click "Craft" if ingredients available
+      
+      STEP 3: Craft action:
+        def craft_recipe(player_state, recipe_id):
+          recipe = find_recipe(recipe_id)
+          for ingredient in recipe["ingredients"]:
+            if ingredient["item_id"] not in player_state["inventory"] * ingredient["quantity"]:
+              return player_state, "Missing ingredients."
+          # Remove ingredients
+          for ingredient in recipe["ingredients"]:
+            for _ in range(ingredient["quantity"]):
+              player_state["inventory"].remove(ingredient["item_id"])
+          # Add result
+          for _ in range(recipe["result_quantity"]):
+            player_state["inventory"].append(recipe["result_item"])
+          return player_state, f"Crafted {recipe['result_item']}!"
+      
+      WHY:
+      Crafting loop creates long-term engagement. Players now have goal: "Farm for
+      kingfish to craft rare potions." Crafting is rewarding: transforms raw materials
+      into valuable items. Gives purpose to fishing loot.
+      
+      FILES:
+      - app/components/game_engine/crafting_system.py (NEW)
+      - data/crafting/recipes.json
+      - app/ui/components/complex/alchemy_panel.py
+
+---
+
+[6.4] Herb Gathering Location (Idle Collection)
+      
+      WHAT:
+      New location "Herbalist's Grove." Similar to fishing but collect herbs
+      instead of fish. Herbs respawn every 20 seconds. Different herbs (common,
+      uncommon, rare). Used for crafting potions. Creates alternative to combat
+      for earning crafting materials.
+      
+      HOW:
+      - UI shows herb plant
+      - Click "Gather Herbs" -> spend 20 seconds gathering
+      - Get 1-3 random herbs (weighted by rarity)
+      - Can gather repeatedly
+      - Herb gathering is faster than fishing (20s vs 10s per cycle)
+      - Harvesting herbs doesn't require waiting (instant, but cooldown)
+      
+      WHY:
+      Multiple idle loops prevent boredom. Fishing + herb gathering create a
+      "do whichever one you prefer" economy. Some players farm herbs, some fish,
+      some fight. All paths valid.
+      
+      FILES:
+      - data/location/herbalist_grove.json
+      - data/items/herbs.json
+      - app/components/game_engine/location_actions.py (herb gathering)
+
+================================================================================
+TIER 7 — NPC INTERACTIONS & DIALOGUE [v1.3]
+================================================================================
+
+STATUS: World feels inhabited. NPCs have personalities and quests.
+
+[7.1] NPC System Framework
+      
+      WHAT:
+      NPCs now have defined personalities, dialogue trees, and relationship
+      tracking. Talking to NPC shows their dialogue. Some NPCs give quests,
+      others just tell stories. Each NPC has a name, description, and 3-5
+      dialogue lines that rotate.
+      
+      HOW:
+      
+      STEP 1: NPC definition in data/npcs/npcs.json:
+        {
+          "id": "npc_bartender_01",
+          "name": "Marcus the Bartender",
+          "location_id": "tavern",
+          "personality": "gruff but kind",
+          "description": "An older man with a scarred face. He wipes glasses behind the bar.",
+          "dialogue": [
+            "Welcome back, stranger! The usual?",
+            "Things have been quiet lately.",
+            "Hear about the bandits on the north road? Dangerous times.",
+            "Business is good. Can't complain."
+          ],
+          "quest_id": None  // if they offer a quest
+        }
+      
+      STEP 2: Interaction system:
+        def talk_to_npc(player_state, npc_id):
+          npc = find_npc(npc_id)
+          dialogue = random_choice(npc["dialogue"])
+          player_state["npc_interactions"][npc_id] = {
+            "last_talked": current_time(),
+            "times_talked": (times_talked + 1)
+          }
+          return player_state, dialogue
+      
+      STEP 3: UI:
+        - Location shows list of NPCs present
+        - Click NPC name to talk
+        - Display their portrait (emoji or text), name, and dialogue
+        - Button to continue/close conversation
+      
+      WHY:
+      NPCs make world feel alive. Without NPCs, city feels empty. With NPCs,
+      world feels inhabited. Players form pseudo-relationships. Dialogue is
+      flavor and world-building.
+      
+      FILES:
+      - data/npcs/npcs.json
+      - app/components/game_engine/npc_system.py (NEW)
+      - app/ui/components/complex/location_panel.py (NPC interaction UI)
+
+---
+
+[7.2] Simple Quest System (Fetch & Kill Quests)
+      
+      WHAT:
+      NPCs can offer quests: "Fetch 5 herbs from the forest" or "Kill 3 rats in
+      dungeon." Completing quest rewards gold/items. Quests track progress
+      (e.g., "Kill 2/3 rats"). Quests have time limits (must complete within
+      X in-game days or they expire).
+      
+      HOW:
+      
+      STEP 1: Quest structure in data/quests/quests.json:
+        {
+          "id": "quest_herbalist_fetch_01",
+          "name": "Gather Moonflowers",
+          "npc_id": "npc_herbalist_01",
+          "type": "fetch",
+          "description": "The herbalist needs 5 moonflowers for a potion. Gather them from the grove.",
+          "objective": {
+            "item_id": "item_moonflower_01",
+            "quantity": 5
+          },
+          "reward": {
+            "gold": 50,
+            "item": "item_potion_rare_01"
+          },
+          "time_limit_days": 7
+        }
+      
+      STEP 2: Accept quest:
+        def accept_quest(player_state, quest_id):
+          quest = find_quest(quest_id)
+          player_state["active_quests"][quest_id] = {
+            "accepted_at": current_day(),
+            "progress": 0
+          }
+          return player_state, f"Quest accepted! {quest['description']}"
+      
+      STEP 3: Track progress:
+        - On collecting item: check if it counts toward active quest
+        - Increment quest progress
+        - Show: "Collected moonflower (3/5)"
+        - On reaching objective: quest shows "Complete" button
+      
+      STEP 4: Complete quest:
+        def complete_quest(player_state, quest_id):
+          quest = find_quest(quest_id)
+          player_state["gold"] += quest["reward"]["gold"]
+          player_state["inventory"].append(quest["reward"]["item"])
+          del player_state["active_quests"][quest_id]
+          return player_state, f"Quest complete! Reward: {quest['reward']['gold']} gold + item"
+      
+      WHY:
+      Quests create directed gameplay. Without them, players are aimless. With
+      quests, players have objectives. Multiple quests create multiple goal paths.
+      Quests drive replayability: "Do one more quest before logging off."
+      
+      FILES:
+      - data/quests/quests.json
+      - app/components/game_engine/quest_system.py (NEW)
+      - app/ui/components/complex/quest_log_panel.py (NEW)
+
+---
+
+[7.3] Quest Chains & Story Progression
+      
+      WHAT:
+      Some quests link together: completing "Find herbs" unlocks "Create potion"
+      quest. Quest chains create narrative and long-term progression. Completing
+      full chain gives bonus reward. Tracks which quests are available based on
+      prior completions.
+      
+      HOW:
+      - Quest has prerequisite_quest_id field
+      - Quest shows locked if prerequisites not met
+      - On completing prerequisite: unlock dependent quest
+      - Chain example:
+        1. "Gather herbs" -> Complete -> Unlock
+        2. "Create potion" -> Complete -> Unlock
+        3. "Deliver potion" -> Complete -> Unlock
+        4. "Speak to elder" -> Complete -> Bonus story rewards
+      
+      WHY:
+      Quest chains create narrative engagement. Players feel progression of a
+      story, not just random tasks. Unlocking new quests feels rewarding.
+      
+      FILES:
+      - data/quests/quests.json (add prerequisite_quest_id field)
+      - app/components/game_engine/quest_system.py (check prerequisites)
+
+---
+
+[7.4] Daily Quests & Quest Reset
+      
+      WHAT:
+      Special quests that reset every in-game day. Daily "Kill 5 enemies for
+      reward" or "Sell 20 worth of items." Completing daily quest gives daily
+      bonus. Encourages daily login/play sessions.
+      
+      HOW:
+      - Daily quests in data/quests/daily_quests.json
+      - Reset at midnight (game time)
+      - Show in separate "Daily Quests" panel
+      - Progress toward daily quest carries across locations
+      - On day reset: clear progress, show new daily quests
+      - Weekly bonus: if complete 6/7 daily quests, bonus reward
+      
+      WHY:
+      Daily quests create habit loops. "Gotta do dailies!" is proven engagement
+      mechanic. Encourages logging in every day. Creates natural play sessions.
+      
+      FILES:
+      - data/quests/daily_quests.json
+      - app/components/game_engine/quest_system.py (daily logic)
+
+================================================================================
+TIER 8 — COLLECTION & ACHIEVEMENTS [v1.4]
+================================================================================
+
+STATUS: Completionism hooks added. Collectathon mechanics encourage deep play.
+
+[8.1] Enemy Bestiary System
+      
+      WHAT:
+      Players unlock bestiary entries when defeating enemies for first time.
+      Each entry shows enemy name, description, and stats. Full bestiary shows
+      % completion. Collecting all enemies gives achievement. This is "Gotta
+      Catch 'Em All" hook.
+      
+      HOW:
+      
+      STEP 1: Bestiary entry structure:
+        {
+          "enemy_id": "enemy_rat_01",
+          "unlocked": False,
+          "times_defeated": 0,
+          "first_defeated_day": None
+        }
+      
+      STEP 2: On defeating enemy:
+        - Check if entry exists for enemy
+        - If not, create it with "unlocked": True
+        - Increment times_defeated
+        - Show: "New bestiary entry: Rat!"
+      
+      STEP 3: Bestiary UI:
+        - Show list of all possible enemies
+        - Locked enemies show "??????"
+        - Unlocked enemies show name, description, stats
+        - Progress bar: "34/50 enemies collected"
+      
+      STEP 4: Full completion reward:
+        - On collecting all enemies: unlock "Bestiary Master" achievement
+        - Grant bonus stats or reward item
+      
+      WHY:
+      Collectathon is proven engagement hook. Compels players to explore all
+      dungeons, fight all enemy types. Completion feels rewarding. Bestiary
+      provides long-term goal.
+      
+      FILES:
+      - app/components/game_engine/bestiary_system.py (NEW)
+      - data/player/bestiary.json (state)
+      - app/ui/components/complex/bestiary_panel.py
+
+---
+
+[8.2] Item Collection Tracker
+      
+      WHAT:
+      Similar to bestiary but for items. Unlocked when you obtain the item.
+      Shows which items you've found and which are missing. Creates drive to
+      find all items in game.
+      
+      HOW:
+      - Track item collection in player_state["item_collection"]
+      - On obtaining item: mark as discovered
+      - Collection panel shows: "Found 45/120 items"
+      - Show rarity breakdown (common, rare, epic items collected)
+      - Full collection reward: special title or cosmetic
+      
+      WHY:
+      Item collection is separate from inventory (you keep all items you found,
+      even if you sold them). Creates completionist drive. Some players seek
+      every item, not just combat progression.
+      
+      FILES:
+      - app/components/game_engine/collection_system.py
+      - app/ui/components/complex/collection_panel.py
+
+---
+
+[8.3] Location Discovery Tracker
+      
+      WHAT:
+      Track which locations player has visited. Visiting a location unlocks it
+      in a map/list. Shows description of each location. Finding all locations
+      gives achievement.
+      
+      HOW:
+      - player_state["locations_discovered"] = []
+      - On entering location: add to discovered list
+      - Show discovery message: "New location discovered: Fishing Spot!"
+      - Map/list UI shows all locations with icons for discovered/undiscovered
+      
+      WHY:
+      Encourages exploration. Players want to visit every location. Provides
+      sense of world size and player agency.
+      
+      FILES:
+      - app/components/game_engine/location_tracker.py
+      - app/ui/components/complex/map_panel.py
+
+---
+
+[8.4] Achievement System
+      
+      WHAT:
+      Define achievements for various milestones. Examples:
+      - "First Blood": Defeat first enemy
+      - "Slayer": Defeat 100 enemies
+      - "Rich": Accumulate 1000 gold
+      - "Fisherman": Catch 50 fish
+      - "Master Crafter": Craft 30 items
+      Achievements show in player profile and can give badges.
+      
+      HOW:
+      - Define achievements in data/achievements/achievements.json:
+        {
+          "id": "achievement_first_blood",
+          "name": "First Blood",
+          "description": "Defeat your first enemy",
+          "condition": "enemy_defeats >= 1",
+          "reward": "badge_first_blood",
+          "points": 10
+        }
+      
+      - Achievement system tracks progress toward each achievement
+      - On reaching condition: unlock achievement, show notification
+      - Profile shows all achievements and % completion
+      
+      WHY:
+      Achievements create secondary goals. Players chase them for completion.
+      Milestones encourage reaching new heights. Sense of progression and
+      accomplishment.
+      
+      FILES:
+      - data/achievements/achievements.json
+      - app/components/game_engine/achievement_system.py (NEW)
+      - app/ui/components/complex/achievements_panel.py
+
+================================================================================
+TIER 9 — SEASONAL EVENTS & LIMITED-TIME CONTENT [v1.5]
+================================================================================
+
+STATUS: World rotates content. FOMO and urgency drive engagement.
+
+[9.1] Seasonal Event System
+      
+      WHAT:
+      Game has 4 seasons that cycle. Each season has unique enemies, items,
+      quests, and events. Spring has different content than Winter. Seasonal
+      items are only available in that season, creating urgency to collect them
+      before season ends.
+      
+      HOW:
+      - Track in-game season (Spring, Summer, Fall, Winter)
+      - Every X in-game days: season advances
+      - Seasonal content defined in data/events/seasonal/:
+        - data/events/seasonal/spring.json
+        - data/events/seasonal/summer.json
+        etc.
+      - Each season has:
+        * Exclusive enemies
+        * Exclusive items (seasonal armor, weapons)
+        * Exclusive quests
+        * Seasonal decorations (flavor text changes)
+      
+      STEP 1: Define seasonal content:
+        {
+          "season": "spring",
+          "enemies": ["enemy_forest_sprite_01", "enemy_bee_swarm_01"],
+          "items": ["item_spring_flower_01", "item_spring_armor_01"],
+          "quests": ["quest_gather_pollen_01"],
+          "duration_days": 30
+        }
+      
+      STEP 2: Season transitions:
+        - Every 30 days: next season
+        - On transition: show message "Summer begins!"
+        - Seasonal items no longer available (until next year)
+      
+      WHY:
+      Seasons create FOMO. Players rush to collect seasonal items. Seasonal
+      rotation keeps content fresh across multiple playthroughs. Encourages
+      year-long engagement loops.
+      
+      FILES:
+      - app/components/game_engine/season_system.py (NEW)
+      - data/events/seasonal/*.json
+
+---
+
+[9.2] Festival Events (Special Multi-Day Events)
+      
+      WHAT:
+      Festivals happen once per season (e.g., Spring Festival). Lasts 5-7 days.
+      During festival: special enemies appear, special items for sale, mini-games
+      available, NPC dialogues change. Festival creates buzz and urgency.
+      
+      HOW:
+      - Festival definition in data/events/festivals/:
+        {
+          "id": "festival_spring_market",
+          "name": "Spring Market Fair",
+          "season": "spring",
+          "start_day": 5,      // day 5 of spring
+          "duration_days": 7,
+          "description": "The market is alive with traders and performers!",
+          "special_merchant": "merchant_spring_fair_01",
+          "special_enemies": ["enemy_dancing_fairy_01"],
+          "special_quests": ["quest_festival_games_01"]
+        }
+      
+      - On entering city during festival: show banner "Spring Market Fair ongoing!"
+      - Special merchant appears (one-time only, sells festival items)
+      - Special enemies in dungeon
+      - Festival-only quests available
+      - After festival ends: items no longer available
+      
+      WHY:
+      Festivals create event-driven engagement. Players feel they're part of
+      living world. Limited-time nature creates urgency: "Gotta get festival
+      sword before it ends!"
+      
+      FILES:
+      - data/events/festivals/*.json
+      - app/components/game_engine/festival_system.py
+
+---
+
+[9.3] Boss Encounters & Seasonal Bosses
+      
+      WHAT:
+      Seasonal dungeon has a boss at the end. Boss is harder than regular enemies.
+      Defeating boss gives rare loot and achievement. Each season has different
+      boss. Fighting bosses is core engagement loop.
+      
+      HOW:
+      - Boss rooms at dungeon end (level 10 or deeper)
+      - Boss has high HP (100+), strong attacks, special abilities
+      - Defeating boss: show victory screen with loot
+      - Loot includes: rare items, large gold reward, achievement
+      - Each season's boss is different (seasonal boss)
+      
+      STEP 1: Boss definition:
+        {
+          "id": "boss_spring_01",
+          "name": "Spring Guardian",
+          "season": "spring",
+          "hp": 150,
+          "damage_min": 5,
+          "damage_max": 12,
+          "abilities": ["ability_heal_10", "ability_multi_attack"],
+          "loot_table": ["item_spring_boss_armor_01", "item_rare_gem_01"],
+          "loot_chance": 1.0,  // guaranteed drop
+          "loot_count": 2,
+          "boss_lore": "An ancient guardian protecting the spring forest..."
+        }
+      
+      WHY:
+      Bosses create climactic moments. Fighting boss is memorable and rewarding.
+      Seasonal bosses mean players face new challenges each season. Gives goal
+      to work toward (beat boss).
+      
+      FILES:
+      - data/dungeon/bosses/bosses.json
+      - app/components/game_engine/boss_system.py
+
+================================================================================
+TIER 10 — ADVANCED COMBAT MECHANICS [v1.6]
+================================================================================
+
+STATUS: Combat depth increases. Special abilities and tactics emerge.
+
+[10.1] Special Abilities & Skill System
+      
+      WHAT:
+      Player learns special abilities (skills) that use Action Points. Example:
+      "Power Strike" costs 5 AP, deals 10 damage. "Multi-Attack" costs 8 AP,
+      hits 3 times. Abilities are unlocked by finding grimoires or leveling.
+      Adds tactical depth to combat.
+      
+      HOW:
+      
+      STEP 1: Ability structure:
+        {
+          "id": "ability_power_strike",
+          "name": "Power Strike",
+          "type": "offensive",
+          "ap_cost": 5,
+          "damage_multiplier": 2.0,  // 2x normal damage
+          "effects": [],             // no special effects
+          "description": "Strike with all your might!"
+        }
+      
+      STEP 2: Player starts with basic abilities:
+        - Attack (0 AP): basic 1x damage
+        - Power Strike (5 AP): 2x damage
+        - Defend (3 AP): reduce next hit by 50%
+      
+      STEP 3: Combat UI shows abilities:
+        - Display current AP (max 20)
+        - Show ability list with AP costs
+        - Highlight unaffordable abilities (grayed out)
+        - Click ability to use
+      
+      STEP 4: In combat:
+        - Each combat round:
+          * Gain 10 AP
+          * Choose action (attack, ability, item, flee)
+          * Use action costs AP
+          * Opponent attacks back
+        - Round ends when both resolve
+      
+      WHY:
+      Abilities add tactical decision-making. Combat becomes: "Do I use ability
+      now or save AP for next round?" Abilities feel powerful and rewarding.
+      Different ability loadouts create build diversity.
+      
+      FILES:
+      - app/components/game_engine/ability_system.py (NEW)
+      - data/abilities/abilities.json
+      - app/components/game_engine/combat_system.py (modify for AP system)
+
+---
+
+[10.2] Enemy Abilities
+      
+      WHAT:
+      Enemies also have special abilities. Strong enemies use them strategically.
+      Boss uses abilities frequently. Creates unpredictability and tension.
+      Example: "Enemy casts fireball! You take 15 damage!"
+      
+      HOW:
+      - Enemy definition includes abilities:
+        {
+          "id": "enemy_wizard_01",
+          "abilities": ["ability_fireball", "ability_heal", "ability_multi_attack"],
+          "ability_chance": 0.4  // 40% chance to use ability instead of basic attack
+        }
+      
+      - In combat: enemy picks action (basic attack or ability)
+      - If ability picked: apply ability effects
+      - Players must counter-strategize
+      
+      WHY:
+      Enemy abilities create combat variety. Different enemies require different
+      tactics. Strategic depth emerges naturally.
+      
+      FILES:
+      - data/dungeon/enemies/enemies.json (add abilities field)
+      - app/components/game_engine/combat_system.py
+
+---
+
+[10.3] Enemy Weakness System
+      
+      WHAT:
+      Enemies have weaknesses to certain damage types or statuses. Fire enemy
+      weak to water spells. Undead weak to holy damage. Using correct ability
+      deals extra damage or guaranteed hit. Creates puzzle element to combat.
+      
+      HOW:
+      - Enemy definition includes:
+        {
+          "id": "enemy_fire_elemental",
+          "weaknesses": ["water_damage", "ice_damage"],
+          "resistances": ["fire_damage"]
+        }
+      
+      - Ability has damage_type field:
+        {
+          "id": "ability_water_strike",
+          "damage_type": "water_damage",
+          "base_damage": 5
+        }
+      
+      - In combat damage calculation:
+        if ability.damage_type in enemy.weaknesses:
+          damage *= 2.0  // double damage
+        if ability.damage_type in enemy.resistances:
+          damage *= 0.5  // half damage
+      
+      WHY:
+      Weaknesses add strategic dimension. Players learn enemy types and prepare
+      appropriate abilities. Makes combat about planning, not just smashing.
+      
+      FILES:
+      - data/dungeon/enemies/enemies.json (add weaknesses/resistances)
+      - data/abilities/abilities.json (add damage_type field)
+      - app/components/game_engine/combat_system.py
+
+---
+
+[10.4] Companion System (Optional Squad)
+      
+      WHAT:
+      Players can hire companions (NPCs) to fight alongside them in dungeons.
+      Companions have their own stats, abilities, and equipment. During combat,
+      companions also attack, taking pressure off player. Companions gain
+      experience and level up.
+      
+      HOW:
+      - Hire companion at tavern/guild hall
+      - Cost: initial purchase, then upkeep gold per dungeon run
+      - Companion occupies inventory slot
+      - In combat: companion acts each round alongside player
+      - Companion has own HP, can be defeated
+      - If defeated: show "Companion fell in combat!"
+      - Leveling: companion gains XP from defeated enemies
+      
+      WHY:
+      Companions add social element and expand team concept. Makes combat easier
+      (two vs one) but costs gold. Creates interesting economy: is companion worth
+      the upkeep? Feels less lonely to have ally.
+      
+      FILES:
+      - app/components/game_engine/companion_system.py (NEW)
+      - data/npcs/companions.json
+      - app/components/game_engine/combat_system.py (multi-actor combat)
+
+================================================================================
+TIER 11 — PROGRESSION & LEVELING SYSTEMS [v1.7]
+================================================================================
+
+STATUS: Character grows through leveling. Power progression becomes visible.
+
+[11.1] Experience & Leveling System
+      
+      WHAT:
+      Players gain experience (XP) from defeating enemies. Every X XP, player
+      levels up and gains stat points. Base stats (HP, damage) increase at
+      level-up. Player levels from 1-50. Leveling is permanent progression.
+      
+      HOW:
+      
+      STEP 1: Track player level and XP:
+        player_state = {
+          ...
+          "level": 1,
+          "experience": 0,
+          "next_level_xp": 100
+        }
+      
+      STEP 2: On enemy defeat, grant XP:
+        - XP = enemy_level * 10  // scale with difficulty
+        - Example: level 1 rat = 10 XP, level 5 goblin = 50 XP
+        - Show: "Gained 25 XP!"
+      
+      STEP 3: Level-up calculation:
+        - Next level XP = previous_next_level_xp * 1.1  // 10% more each level
+        - On reaching next_level_xp: level up
+        - Show: "LEVEL UP! Now level 5!"
+      
+      STEP 4: Stat increases on level-up:
+        - Max HP += 5
+        - Base Damage += 1
+        - Or let player choose: allocate 3 points to HP or Damage
+      
+      WHY:
+      Leveling is core RPG progression. Players feel character growing stronger.
+      Levels provide long-term goal (reach level 50). Permanent progression
+      encourages repeated play.
+      
+      FILES:
+      - app/components/game_engine/level_system.py (NEW)
+      - data/player/defaults.json (starting level/XP)
+
+---
+
+[11.2] Stat Allocation & Builds
+      
+      WHAT:
+      On leveling up, player gets 3 stat points to allocate. Distribute to:
+      HP (health), Strength (damage), Defense (armor), or Speed (faster combat).
+      Different distributions create character builds.
+      
+      HOW:
+      - On level-up: show UI "Allocate 3 points" with buttons
+      - Click stat name to add point
+      - Can allocate all to one stat or split
+      - Stats persist in character
+      - Different builds are viable: tank (high HP), DPS (high strength), balanced
+      
+      WHY:
+      Stat allocation creates character customization and build diversity. Players
+      can optimize for playstyle. Encourages discussion: "What build do you use?"
+      
+      FILES:
+      - app/components/game_engine/level_system.py (stat allocation)
+      - app/ui/components/complex/levelup_panel.py
+
+---
+
+[11.3] Prestige / New Game+ System (Optional)
+      
+      WHAT:
+      At level 50, players can "Prestige" - reset to level 1 but keep 10% of
+      total gold as bonus multiplier. New Game+ is harder (enemies stronger).
+      Prestige is optional but gives prestige points (cosmetic currency).
+      
+      HOW:
+      - Button in menu: "Prestige"
+      - Shows: "Reset to level 1, keep X gold bonus"
+      - New Game+: enemy scaling increased by 20%
+      - Prestige points currency: cosmetic only or for shop cosmetics
+      - Can prestige unlimited times
+      
+      WHY:
+      Prestige gives endgame content. Once you hit level 50, prestige extends
+      gameplay. Encourages long-term play loops. New Game+ keeps challenge fresh.
+      
+      FILES:
+      - app/components/game_engine/prestige_system.py (NEW)
+
+================================================================================
+TIER 12 — COSMETICS & PLAYER CUSTOMIZATION [v1.8]
+================================================================================
+
+STATUS: Cosmetic progression added. Player expression through appearance.
+
+[12.1] Player Profile & Custom Title
+      
+      WHAT:
+      Players can set custom character name and title. Title changes throughout
+      game based on achievements. Examples:
+      - "The Brave" - after defeating first boss
+      - "Bestiary Master" - collect all enemies
+      - "Wealth Collector" - 10000 gold collected
+      Names and titles appear in UI and save files.
+      
+      HOW:
+      - New game: show "Create Character" screen
+      - Input name and starting title
+      - Name persists in profile
+      - Achievements unlock new titles to choose from
+      - Title displayed in UI: "[Name] the [Title]"
+      
+      WHY:
+      Character identity creates emotional attachment. Players feel ownership.
+      Titles reward achievements and feel prestigious.
+      
+      FILES:
+      - app/components/game_engine/profile_system.py
+      - data/player/profiles.json
+
+---
+
+[12.2] Equipment Visual Customization (Text-Based)
+      
+      WHAT:
+      Equipment has visual descriptions. Wearing different gear changes how
+      character is described. "You are armed with Iron Sword and Leather Armor"
+      vs "You are armed with Diamond Sword and Mithril Plate." Visual
+      descriptions in text game.
+      
+      HOW:
+      - Item definition includes visual_description:
+        {
+          "id": "item_sword_01",
+          "visual_description": "gleaming iron blade"
+        }
+      
+      - On player panel: show equipped items
+      - Describe character: "You are a [class] wielding a [weapon] and [armor]"
+      
+      WHY:
+      Makes character feel personalized. Even in text game, equipment feel
+      visually distinct through description. Creates sense of progression.
+      
+      FILES:
+      - data/dungeon/items/items.json (add visual descriptions)
+      - app/ui/components/complex/player_panel.py
+
+---
+
+[12.3] Title & Badge Display
+      
+      WHAT:
+      Player profile page shows all earned badges/achievements. Display titles
+      earned. Show statistics: enemies defeated, gold earned, hours played.
+      Players can compare profiles informally (no global leaderboard, just personal).
+      
+      HOW:
+      - Profile panel shows:
+        * Character name and title
+        * Current level and XP bar
+        * Total stats (enemies defeated, total gold earned)
+        * Badges earned
+        * "Prestige count" if applicable
+      
+      WHY:
+      Gives players showcase for achievements. Creates sense of accomplishment.
+      Stats motivate continued play ("I want that number higher").
+      
+      FILES:
+      - app/ui/components/complex/profile_panel.py
+
+================================================================================
+TIER 13 — GUILDS & MULTIPLAYER COMPARISON [v1.9]
+================================================================================
+
+STATUS: Social comparison without internet. Offline leaderboards emerge.
+
+[13.1] Bot NPC Profiles
+      
+      WHAT:
+      Create several bot profiles with realistic stats. Players see leaderboard-
+      like comparison: "You rank #X among NPCs." Shows comparative standing
+      informally. Bot profiles include names and stats but aren't real players
+      (just data).
+      
+      HOW:
+      - Define bot profiles in data/bots/bot_profiles.json:
+        [
+          {
+            "name": "Gorak the Strong",
+            "level": 45,
+            "gold": 50000,
+            "enemies_defeated": 2500
+          },
+          {
+            "name": "Luna the Quick",
+            "level": 38,
+            "gold": 35000,
+            "enemies_defeated": 1800
+          }
+        ]
+      
+      - Compare player stats to bots
+      - Show leaderboard UI
+      - Display player rank among bots
+      
+      WHY:
+      Social comparison is addictive. Even comparing to bots creates engagement
+      hook. Players want to beat bot scores. Creates competition without servers.
+      
+      FILES:
+      - data/bots/bot_profiles.json
+      - app/components/game_engine/comparison_system.py
+
+---
+
+[13.2] Guild System (Faction Choice)
+      
+      WHAT:
+      Player chooses a guild (faction) at start or later. Guilds:
+      - Assassins Guild (stealth-focused)
+      - Merchant Guild (economy-focused)
+      - Mage Academy (magic-focused)
+      - Warrior Order (combat-focused)
+      Guild choice unlocks guild-specific quests and abilities.
+      
+      HOW:
+      - On character creation or level 5: choose guild
+      - Each guild has:
+        * Unique quests
+        * Unique abilities to unlock
+        * Unique cosmetics/titles
+        * Guild-specific perks
+      
+      - Assassins Guild: +10% crit chance, stealth abilities
+      - Merchant Guild: +20% gold from enemies, trading abilities
+      - Mage Academy: access to magic abilities, spell consumables
+      - Warrior Order: +10% damage, weapon mastery
+      
+      WHY:
+      Guilds create build variety and playstyle identity. Choosing guild creates
+      character concept. Guild quests provide faction-specific content.
+      
+      FILES:
+      - data/guilds/guilds.json
+      - app/components/game_engine/guild_system.py (NEW)
+
+---
+
+[13.3] Guild Progression & Ranks
+      
+      WHAT:
+      Player progresses through guild ranks: Initiate -> Apprentice -> Member
+      -> Expert -> Master. Rank unlocks perks and higher-tier abilities. Shows
+      progression within guild.
+      
+      HOW:
+      - Ranks earned through guild-specific metrics
+      - Assassin rank: enemies defeated via stealth/abilities
+      - Merchant rank: total gold earned
+      - Mage rank: spells cast
+      - Warrior rank: melee combat wins
+      
+      - Rank requirements scale (initiate = 0 actions, master = 10000 actions)
+      - Each rank unlocks new ability or perk
+      
+      WHY:
+      Guild progression gives secondary progression path. Alternative to pure
+      leveling. Different playstyles progress differently. Long-term goal.
+      
+      FILES:
+      - data/guilds/guild_ranks.json
+      - app/components/game_engine/guild_system.py
+
+================================================================================
+TIER 14 — ECONOMY & TRADING [v2.0]
+================================================================================
+
+STATUS: Economy becomes player-driven. Trading and markets create emergent gameplay.
+
+[14.1] NPC Trading System
+      
+      WHAT:
+      NPCs want items. Trade items to NPCs for gold/other items. Example:
+      "Blacksmith wants 5 iron ore for 100 gold" or "Herbalist wants moonflowers
+      for health potions." Creates trading relationships. Encourages gathering
+      resources to trade.
+      
+      HOW:
+      - Define NPC trades in data/npcs/npc_trades.json:
+        {
+          "npc_id": "npc_blacksmith_01",
+          "trades": [
+            {
+              "wants": ["item_iron_ore_01"],
+              "quantity": 5,
+              "offers": "gold",
+              "amount": 100
+            }
+          ]
+        }
+      
+      - At NPC: show "This NPC wants [item]"
+      - If player has item: can trade
+      - Trade executes: items removed, reward added
+      
+      WHY:
+      Trading creates goal-driven gathering. Players gather for trades instead of
+      just gold. Creates economic chains: mine ore -> trade to blacksmith -> get
+      gold -> buy better gear.
+      
+      FILES:
+      - data/npcs/npc_trades.json
+      - app/components/game_engine/trading_system.py
+
+---
+
+[14.2] Price Fluctuation (Dynamic Economy)
+      
+      WHAT:
+      Item prices fluctuate based on supply/demand simulation. If players sell lots
+      of fish, fish price drops. If players buy lots of swords, sword price rises.
+      Creates illusion of living economy without real players.
+      
+      HOW:
+      - Track recent trades (last 100 actions): items bought/sold
+      - Calculate supply/demand ratio
+      - Adjust prices dynamically
+        * High demand, low supply = high price
+        * Low demand, high supply = low price
+      - Price changes capped (±50% from base price)
+      
+      WHY:
+      Dynamic prices create economic strategy. Players must read market trends.
+      Creates illusion of living economy. Feels more realistic than static prices.
+      
+      FILES:
+      - app/components/game_engine/economy_system.py (NEW)
+      - data/economy/base_prices.json
+
+---
+
+[14.3] Auction House (Item Trading Between Sessions)
+      
+      WHAT:
+      Auction house allows players to post items for sale (cross-profile if
+      playing multiple saves). List item with price. Other profiles can buy
+      from auction house. Offline trading mechanic.
+      
+      HOW:
+      - Auction house location: central hub
+      - Interface: "Post Item for Sale"
+        * Select item from inventory
+        * Set price
+        * Confirm listing
+      - Auction house shows all active listings
+      - Browse and buy from other players' listings
+      - Transaction: buyer's gold -> seller's profile, item -> buyer
+      
+      WHY:
+      Auction house encourages alt characters and long-term engagement. Players
+      farm alt accounts for items. Creates meta-game: efficient farming strategies.
+      Trading between profiles feels social even offline.
+      
+      FILES:
+      - app/components/game_engine/auction_house.py (NEW)
+      - data/auction_house/listings.json
+
+================================================================================
+TIER 15 — DUNGEONS & PROCEDURAL GENERATION [v2.1]
+================================================================================
+
+STATUS: Dungeon generation becomes sophisticated. Infinite replayability emerges.
+
+[15.1] Procedural Dungeon Generation
+      
+      WHAT:
+      Dungeons are randomly generated each run. Room layout, enemies, items all
+      randomized based on seed. Same seed = same dungeon (reproducible). Different
+      seed = different dungeon. Creates infinite dungeon replayability.
+      
+      HOW:
+      - Dungeon generator algorithm:
+        1. Generate room layout (grid, branching paths)
+        2. Populate rooms with enemies (weighted by depth)
+        3. Place loot items (random pools per depth)
+        4. Create path to boss room
+      
+      - Seeded RNG: same seed = same dungeon always
+      - Player can share dungeon seeds with community
+      - Each dungeon run: new random seed (unless player selects specific)
+      
+      WHY:
+      Procedural generation eliminates replay fatigue. Same dungeon becomes
+      boring, but randomized dungeons feel fresh. Infinite content without
+      manual level design.
+      
+      FILES:
+      - app/components/game_engine/dungeon_generator.py (NEW)
+      - data/dungeon/generation_rules.json
+
+---
+
+[15.2] Dungeon Difficulty Scaling
+      
+      WHAT:
+      Dungeons have difficulty levels: Easy, Normal, Hard, Nightmare. Higher
+      difficulty = stronger enemies, better loot. Players choose difficulty.
+      Nightmare gives rare drops and achievement points.
+      
+      HOW:
+      - Difficulty affects:
+        * Enemy level/HP scaling (normal = 1x, hard = 1.5x, nightmare = 2x)
+        * Loot rarity (harder = rarer drops)
+        * XP reward (harder = more XP)
+      
+      - On entering dungeon: choose difficulty
+      - Selected difficulty affects all rooms
+      
+      WHY:
+      Difficulty scaling creates challenge curve. Players can tune challenge to
+      their strength. Hardcore players do nightmare runs for prestige.
+      
+      FILES:
+      - app/components/game_engine/dungeon_generator.py
+      - data/dungeon/difficulty_settings.json
+
+---
+
+[15.3] Dungeon Seed Sharing (Community Feature)
+      
+      WHAT:
+      Players can export dungeon seed strings. Share seeds with friends. Friend
+      pastes seed and generates same dungeon to compete. Leaderboard for "fastest
+      clear of seed X." Offline multiplayer through seed sharing.
+      
+      HOW:
+      - Dungeon seed: short alphanumeric string (e.g., "ABC123DEF")
+      - After dungeon: show "Seed: ABC123DEF"
+      - Player copies seed
+      - Friend pastes seed in dungeon selector
+      - Friend runs same dungeon
+      - Leaderboard tracked locally: "ABC123DEF - Your best: 15 minutes"
+      
+      WHY:
+      Seed sharing creates community engagement without servers. Players compete
+      informally. Feels social and competitive. Emergent speedrunning culture.
+      
+      FILES:
+      - app/components/game_engine/seed_system.py
+      - data/dungeon/seed_leaderboards.json (local)
+
+---
+
+[15.4] Special Dungeon Modifiers (Challenges)
+      
+      WHAT:
+      Modifiers change dungeon rules: "No Potions" (can't use consumables),
+      "Double Damage" (enemies deal 2x), "One Life" (permadeath mode). Modifiers
+      stack. Clearing with hard modifiers = achievement.
+      
+      HOW:
+      - Modifier list on dungeon selector:
+        [] No Potions
+        [] Double Damage
+        [] Weak Gear (all equipment -50% stats)
+        [] Time Limit (must clear in X minutes)
+      
+      - Modifiers affect gameplay rules
+      - No Potions: use_item disabled during run
+      - Double Damage: enemy damage *= 2
+      - Weak Gear: equipped stat bonuses halved
+      
+      WHY:
+      Modifiers create custom challenge for veteran players. Achieves endless
+      replayability through rule variations. Feels like Dark Souls "challenge
+      run" culture.
+      
+      FILES:
+      - data/dungeon/modifiers.json
+      - app/components/game_engine/dungeon_generator.py
