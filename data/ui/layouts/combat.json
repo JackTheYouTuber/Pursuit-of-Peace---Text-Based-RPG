@@ -1,0 +1,11 @@
+{
+  "type": "CombatPanel",
+  "name": "combat_panel",
+  "data": {
+    "log_source": "combat.log",
+    "enemy_name_source": "combat.enemy_name",
+    "enemy_hp_source": "combat.enemy_hp",
+    "actions_source": "combat.actions"
+  },
+  "on_action": "combat_action"
+}
