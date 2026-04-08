@@ -77,7 +77,7 @@ main.pyw                    Entry point
 app/                        Application source code
 data/                       All game data (JSON)
 logs/                       Session log files (auto-created)
-Docs/                       Project documentation
+docs/                       Project documentation
 ```
 
 See `Docs/ARCHITECTURE.md` for a full breakdown of the source tree.
