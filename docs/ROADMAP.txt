@@ -1,100 +1,1142 @@
 PURSUIT OF PEACE — DEVELOPMENT ROADMAP
 =======================================
 
-Priority order for future development. Each item references the KNOWN_GAPS.md
-or KNOWN_ISSUES.md entry it resolves.
+Inspired by offline Discord RPG bots with addictive mechanics, designed for full JSON-based modding.
+Each tier represents a complete feature set with clear deliverables and version increments.
 
 ================================================================================
-TIER 1 — CORE GAMEPLAY (Must-Have for a Playable Game)
+TIER 1 — CORE SURVIVAL LOOP [v0.7 — COMPLETE]
 ================================================================================
 
-[1] ✓ Enemy Counter-Attack in Combat  (DONE v0.7)                          (ISSUE-001)
-    Enemies deal damage_min..damage_max HP to the player each combat round.
-    Without this, combat has zero risk and no purpose.
+STATUS: Foundation complete. Players can lose, die, and face consequences.
 
-[2] ✓ Player Death Handling  (DONE v0.7)                                   (ISSUE-002)
-    When player HP <= 0, end combat, show game-over dialog, allow restart.
-    Depends on [1].
+[1.1] ✓ Enemy Counter-Attack in Combat  (DONE v0.7)                          (ISSUE-001)
+     
+     WHAT:
+     Enemies now deal damage back to the player each combat round. Previously,
+     every enemy attack was ignored and combat had zero risk.
+     
+     HOW:
+     - Each enemy in enemies.json has damage_min and damage_max fields
+     - When player attacks: generate random damage between min/max
+     - Deal damage to enemy, display in combat log
+     - Enemy retaliates: generate random damage for enemy attack
+     - Deduct from player HP, display counter-attack in log
+     - If player HP <= 0, proceed to [1.2]
+     
+     WHY:
+     Combat is now actually dangerous. Death becomes possible. This transforms combat
+     from "guaranteed win" to "strategic challenge." Players must choose whether to
+     fight or flee. Engagement hook: "What if I lose?"
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord RPG bots use counter-attacks to create tension
+     - Each turn matters because both sides take damage
+     - Encourages potion use and strategic retreat
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/combat_system.py
+     - Method: attack() now returns both player damage AND enemy counter damage
+     - Combat log shows: "You deal 7 damage! Enemy Rat strikes back for 3 HP!"
+     - No AI needed; purely random rolls based on enemy stats
+     
+     FILES MODIFIED:
+     - app/components/game_engine/combat_system.py
+     - app/ui/components/complex/combat_panel.py (display counter-attacks)
 
-[3] ✓ Year Rollover Trigger  (DONE v0.7)                                   (ISSUE-008 / GAP-006)
-    Implement a time mechanic (e.g. action counter or day counter per year).
-    Call process_year_rollover() at year-end.
-    Show exile screen if tax is unpaid.
-    Without this the entire tax system is cosmetic.
+---
 
-[4] ✓ Populate Dungeon Lore Text  (DONE v0.7)                              (ISSUE-009 / GAP-011)
-    Fill data/lore/dungeon.json with room descriptions.
-    Fill data/lore/*.json for all empty city locations.
-    Currently most screens show blank description areas.
+[1.2] ✓ Player Death Handling  (DONE v0.7)                                   (ISSUE-002)
+     
+     WHAT:
+     When player HP reaches 0 or below, the game ends immediately. A "Game Over"
+     dialog appears showing which enemy defeated you. Player can reset state and
+     return to the city without restarting the application.
+     
+     HOW:
+     - Combat system checks: if player_hp <= 0 after enemy attack
+     - Set combat_state["player_dead"] = True
+     - Call GameEngine.end_combat(player_dead=True)
+     - Show game-over modal: "You were defeated by [Enemy Name]!"
+     - On modal dismiss: reset player to spawn location (City Gates)
+     - Reset player state to last saved profile or create new with defaults
+     - Return to city view so player can start new dungeon run
+     
+     WHY:
+     Death must be consequential but not punishing. Without death, there's no
+     risk. With permanent death, game feels too harsh (especially for offline).
+     This balance creates tension without frustration.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots show "You died!" in chat, then let you retry immediately
+     - No save wipes; you try again with clean slate
+     - Creates "one more run" addiction loop
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/combat_system.py, app/game_engine.py
+     - Check: if player_current_hp <= 0 after each enemy turn
+     - Modal: "Game Over\n\nDefeated by: [Enemy]\nKills this run: 3"
+     - Button: "Try Again" resets state and shows city view
+     - Tracking: player_state["times_died"] increments
+     
+     FILES MODIFIED:
+     - app/components/game_engine/combat_system.py
+     - app/game_engine.py
+     - app/ui/components/complex/combat_panel.py (game-over modal)
+
+---
+
+[1.3] ✓ Year Rollover Trigger  (DONE v0.7)                               (ISSUE-008 / GAP-006)
+     
+     WHAT:
+     Game time advances. An internal action counter tracks how many "actions"
+     the player has taken (resting, fishing, fighting). Every 30 actions,
+     one in-game year passes. At year-end, taxes come due. Unpaid taxes = exile
+     (permanent game over, profile ended).
+     
+     HOW:
+     - GameEngine tracks: action_counter (starts at 0)
+     - Each significant action increments counter:
+       * Defeat enemy (+1)
+       * Rest at tavern (+1)
+       * Fish at river (+1)
+       * Take item in dungeon (+1)
+       * Buy/sell item (+1)
+     - Navigation actions (moving between locations) do NOT count
+     - When action_counter >= 30 (ACTIONS_PER_YEAR):
+       * Call GameEngine.process_year_rollover()
+       * Increment player_state["year"]
+       * Check: if player_state["tax_paid"] == False:
+         - Show exile screen: "You could not pay your taxes! You are exiled forever!"
+         - Profile marked as dead; cannot be resumed
+         - Reload latest save or start new profile
+       * Reset tax_paid to False for new year
+       * Reset action_counter to 0
+     
+     WHY:
+     Time pressure is the ultimate engagement hook. Without year/time, taxes are
+     cosmetic. With them, players feel urgency: "I need X gold before year-end."
+     This drives repeated play sessions and creates natural stopping points.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots use "daily resets" for urgency (e.g., "Daily quest resets in 3h")
+     - Time pressure makes casual decisions matter
+     - "Gotta get it done before deadline" is a proven addiction mechanic
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/game_engine.py, app/components/game_engine/state_manager.py
+     - Configuration: data/dungeon/config.json includes "ACTIONS_PER_YEAR": 30
+     - Rollover check happens after EVERY action
+     - Tax amount: data/economy/prices.json["tax"]
+     - Player must visit City Hall and use "pay_taxes" action before year-end
+     - If still unpaid at rollover: exile screen, game-over dialog
+     - Tracking: player_state["years_survived"] (for stats)
+     
+     FILES MODIFIED:
+     - app/game_engine.py (action counter and rollover check)
+     - app/components/game_engine/location_actions.py (pay_taxes action)
+     - app/components/game_engine/view_builder.py (display year/tax status)
+     - data/dungeon/config.json (ACTIONS_PER_YEAR setting)
+
+---
+
+[1.4] ✓ Populate Dungeon Lore Text  (DONE v0.7)                      (ISSUE-009 / GAP-011)
+     
+     WHAT:
+     All dungeon rooms and city locations now have descriptive flavor text.
+     Instead of blank screens, players see: "You enter a damp corridor. Roots
+     hang from the ceiling. You hear scurrying..." Each location has 3-5 text
+     variants so repeated visits feel fresh.
+     
+     HOW:
+     - data/lore/dungeon.json: array of lore entries with types (description/ambient/rumor)
+     - Each room template references a lore_key that maps to lore text
+     - On room entry: pick random lore entry of type "description"
+     - Display in location_panel text area
+     - On repeat visit: pick different random entry (stored in session log)
+     - City location lore: similar system for tavern, marketplace, etc.
+     - Lore can mention enemies, items, or world-building hints
+     
+     WHY:
+     Flavor text makes the game feel alive and immersive. Without it, blank
+     screens feel broken even if mechanics work. Lore also subtly teaches players
+     about world, items, and strategies through environmental storytelling.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots include flavor text: "You enter the tavern. A bard plays
+       in the corner. You notice a hooded figure in the back."
+     - Each action has 2-3 text variants so it doesn't feel repetitive
+     - Flavor text makes simple mechanics feel rich
+     
+     IMPLEMENTATION DETAILS:
+     - File: data/lore/dungeon.json, data/lore/*.json for each location
+     - Format: {"id": "lore_key_01", "type": "description", "text": "..."}
+     - DungeonManager.get_room_lore_text() picks random entry by lore_key
+     - LocationManager.get_location_description() picks random for city location
+     - Lore entries populated for all 15 locations and all room types
+     - Total: ~150 lore entries across game
+     
+     FILES MODIFIED:
+     - data/lore/dungeon.json (40+ entries)
+     - data/lore/*.json for each city location (10+ entries each)
+     - app/components/game_engine/dungeon_manager.py (load lore on room entry)
+     - app/components/game_engine/view_builder.py (display lore in UI)
 
 ================================================================================
-TIER 2 — ECONOMY AND PROGRESSION (Makes the Game a Game)
+TIER 2 — CONSUMABLE & EFFECT SYSTEM [v0.8]
 ================================================================================
 
-[5] Consumable Use                                          (ISSUE-004 / GAP-003)
-    Add "Use" button in Inventory view.
-    Implement effect resolver: heal HP, remove debuffs, apply temp buffs.
+STATUS: Items become usable. Inventory gains agency.
 
-[6] Equipment System                                        (GAP-002)
-    Add equipped_weapon and equipped_armor to player state.
-    Equip/unequip from Inventory view.
-    Apply weapon bonus to combat damage.
-    Apply armor reduction to incoming damage.
+[2.1] Item Use / Consumable Effects System
+     
+     WHAT:
+     Players can now "Use" consumable items from their inventory. Each item has
+     an effect_id that maps to an effect definition. Using an item applies its
+     effect (heal HP, remove debuff, gain temporary buff) and removes the item
+     from inventory.
+     
+     HOW:
+     
+     STEP 1: Define effects in data/consumables/effects.json:
+       {
+         "heal_5_hp": {
+           "type": "heal",
+           "target_stat": "hp",
+           "value": 5,
+           "is_stacking": false
+         },
+         "remove_poison": {
+           "type": "remove_buff",
+           "buff_id": "poisoned"
+         },
+         "gain_strength": {
+           "type": "add_buff",
+           "buff_id": "strength_3",
+           "duration": "one_run",
+           "stacking": false
+         }
+       }
+     
+     STEP 2: Add effect_id to items in data/dungeon/items/items.json:
+       {
+         "id": "item_bandage_01",
+         "name": "Cloth Bandage",
+         "type": "consumable",
+         "effect_id": "heal_5_hp",
+         "effect_text": "Restores 5 HP",
+         "value": 6
+       }
+     
+     STEP 3: UI Implementation:
+       - Inventory panel shows list of items
+       - Consumables have "Use" button (weapons/armor show "Equip" instead)
+       - On click "Use": apply effect, show "Used Bandage! HP +5", remove item
+       - In combat: can use consumable before/after attack turn
+     
+     STEP 4: Effect Resolution:
+       - EffectResolver.apply(effect_def, player_state) -> new_player_state
+       - Healing: player_hp += value (capped at max_hp)
+       - Buff application: add to player_state["buffs"] array
+       - Remove buff: filter out matching buff_id from buffs array
+       - Log action: "You used Bandage!"
+     
+     WHY:
+     Consumables create strategic depth. Do you use potions now or save them?
+     Makes inventory meaningful instead of display-only. Also creates economy:
+     players craft/buy potions, use them, need more. Engagement hook: "Use potion
+     before boss fight."
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have `/use potion` command that heals you
+     - Limited potions create tension: "Do I have enough for the boss?"
+     - Item usage is a core feedback loop
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/effect_resolver.py (NEW FILE)
+     - File: app/components/game_engine/location_actions.py (NEW: use_item method)
+     - Effects are pure data, no hardcoding in Python
+     - Healing effects: HP capped at max_hp (no overflow)
+     - Buff effects: duration stored in buff object
+     - Stacking: flag controls if multiple of same buff can exist
+     - In combat: use_item_in_combat action available in combat panel
+     
+     DESIGN CONSIDERATIONS:
+     - Consumables in combat are powerful but limited (makes them valuable)
+     - Can only use items you have (inventory check)
+     - Effect text shown in UI: "[Item Name] was used! [Effect Text]"
+     - No "undo": once consumed, it's gone (teaches consequence)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/effect_resolver.py (NEW)
+     - app/components/game_engine/location_actions.py
+     - app/ui/components/complex/inventory_panel.py (add Use button)
+     - data/consumables/effects.json (NEW)
+     - data/dungeon/items/items.json (add effect_id field)
 
-[7] Shop System — Buy/Sell                                  (GAP-001)
-    Implement buy_item, sell_item at Marketplace.
-    Implement buy_weapon, buy_armor at Blacksmiths Street.
-    Implement buy_potion at Alchemy Hall.
-    Implement repair_equipment at Blacksmiths.
-    Requires equipment system [6].
+---
 
-[8] Buff/Debuff System                                      (ISSUE-005 / GAP-004)
-    Apply active buffs (from bath, potions) to stats each turn.
-    Track duration. Expire buffs at round-end or rest.
-    Implement "poisoned" debuff inflicted by certain enemies.
+[2.2] Buff / Debuff Application System
+     
+     WHAT:
+     Buffs and debuffs now actually apply their effects to player stats. Previously,
+     buffs were stored but ignored. Now:
+     - Strength buff: +3 damage to all attacks
+     - Poison debuff: -1 HP per combat round
+     - Cleanliness buff: +5 max HP while active
+     - Curse debuff: -50% gold from enemies while active
+     
+     HOW:
+     
+     STEP 1: Buff structure in player_state:
+       player_state["buffs"] = [
+         {
+           "id": "strength_3",
+           "source": "potion_strength",
+           "duration": "one_run",
+           "duration_remaining": 1,
+           "stat_mods": {"damage": 3, "max_hp": 0},
+           "label": "Strength"
+         }
+       ]
+     
+     STEP 2: At combat start, apply all active buffs:
+       - Loop through player_state["buffs"]
+       - For each buff: apply its stat_mods to derived stats
+       - Example: if buff has {"damage": 3}, player_damage_roll += 3
+     
+     STEP 3: At combat end or rest:
+       - Loop through buffs and decrement duration_remaining
+       - Remove buffs with duration_remaining <= 0
+       - Show: "Your Strength buff has worn off."
+     
+     STEP 4: Debuffs reduce stats (negative mods):
+       - Poison debuff: {"hp": -1} applies per turn
+       - Curse debuff: {"gold_earned": -0.5} (multiplier)
+       - Cursed item debuff: {"max_hp": -10}
+     
+     WHY:
+     Status effects create tactical depth. Do I use the potion now to get buff,
+     or save it for later? Debuffs make certain enemies dangerous (poison enemies
+     make you want antidotes). Buffs from baths/potions become worth seeking.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have `/status` showing active effects
+     - Buffs encourage replaying content ("one more run for strength buff")
+     - Debuffs make enemies unique and require counter-strategies
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/buff_system.py (NEW FILE)
+     - Method: BuffSystem.apply_buffs(player_state, combat_state) -> modified_combat_state
+     - Method: BuffSystem.tick_buffs(player_state) -> new_player_state (decrement durations)
+     - Method: BuffSystem.add_buff(player_state, buff_def, source) -> new_player_state
+     - Method: BuffSystem.remove_buff(player_state, buff_id) -> new_player_state
+     - Called from: CombatSystem.start_combat(), LocationActions.rest(), etc.
+     - Buff UI display: show active buffs in player panel (top right)
+     - Buff persistence: saved in profile so buffs survive between sessions
+     - Buff expiration: at rest or dungeon exit, tick durations
+     
+     DESIGN CONSIDERATIONS:
+     - Debuffs can be removed by antidote consumables
+     - Some buffs are permanent (equipment-based, see Tier 3)
+     - Some buffs are one-run (session-based, removed at dungeon exit)
+     - Stacking: by default, only one of each buff type active
+     - UI indicator: [+] for positive buffs (green), [-] for negative (red)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/buff_system.py (NEW)
+     - app/components/game_engine/combat_system.py (apply buffs on combat start)
+     - app/components/game_engine/location_actions.py (tick buffs on rest)
+     - app/components/game_engine/state_manager.py (persist buffs in save)
+     - app/ui/components/complex/player_panel.py (display buffs)
+     - data/consumables/effects.json (buff effects already defined in [2.1])
+
+---
+
+[2.3] Buff Sources: Public Bath & Tavern Rest
+     
+     WHAT:
+     Specific city locations now grant temporary buffs. Public Bath grants
+     "Refreshed" (temporary max HP boost). Rest at Tavern grants "Well Rested"
+     (faster action counter? faster healing?). These buffs incentivize visiting
+     specific locations and create strategic planning.
+     
+     HOW:
+     
+     STEP 1: Define buff in data/city/services.json:
+       {
+         "public_bath": {
+           "actions": ["take_bath", "go_city"],
+           "bath_cost": 15,
+           "bath_buff": {
+             "id": "refreshed",
+             "duration": "one_run",
+             "stat_mods": {"max_hp": 5}
+           }
+         }
+       }
+     
+     STEP 2: Implement location action:
+       def take_bath(self, player_state: Dict) -> Tuple[Dict, str]:
+         state = dict(player_state)
+         if state["gold"] < 15:
+           return state, "Not enough gold (need 15)."
+         state["gold"] -= 15
+         buff = {
+           "id": "refreshed",
+           "duration": "one_run",
+           "stat_mods": {"max_hp": 5},
+           "label": "Refreshed"
+         }
+         state["buffs"].append(buff)
+         return state, "You took a bath and feel refreshed! Max HP +5 for this run."
+     
+     STEP 3: Tavern rest:
+       - Similar structure, different buff
+       - Or: rest doesn't grant buff, but costs less gold
+     
+     WHY:
+     Creates decision tree: should I visit bath before dungeon or save gold?
+     Encourages city exploration. Makes each location useful for different reasons.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have "buff stations" in taverns
+     - Players spend gold on temporary buffs before raids
+     - Creates economic pressure loop
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/location_actions.py
+     - Bath cost: configurable in data/economy/prices.json
+     - Buff duration: "one_run" means buff expires at dungeon exit
+     - Buff visible in UI while active
+     - Can stack with other buffs (bath + strength potion = both active)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/location_actions.py
+     - data/city/services.json (bath_buff definition)
+     - data/economy/prices.json (bath_cost)
 
 ================================================================================
-TIER 3 — CONTENT AND POLISH
+TIER 3 — EQUIPMENT & COMBAT PROGRESSION [v0.9]
 ================================================================================
 
-[9] Coliseum / Arena                                        (ISSUE-003 / GAP-007)
-    Implement enter_combat_event (fight a defined opponent for a prize).
-    Implement place_wager (bet gold on outcome).
-    Implement watch_combat_event (spend time, gain rumor/lore).
+STATUS: Combat gains depth. Equipment affects damage/defense.
 
-[10] Crafting System                                        (GAP-008)
-     Implement craft_consumable at Alchemy Hall.
-     Define a recipe table (JSON).
-     Implement sell_reagent.
+[3.1] Equipment Slots: Weapon & Armor
+     
+     WHAT:
+     Add equipped_weapon and equipped_armor to player_state. Players can equip
+     items from inventory. Equipped items persist across sessions and modify
+     combat stats. Unequipping returns item to inventory.
+     
+     HOW:
+     
+     STEP 1: State structure:
+       player_state = {
+         ...
+         "equipped_weapon": {
+           "item_id": "item_iron_sword_01",
+           "current_durability": 42,
+           "max_durability": 50
+         },
+         "equipped_armor": {
+           "item_id": "item_leather_armor_01",
+           "current_durability": 38,
+           "max_durability": 40
+         }
+       }
+     
+     STEP 2: Item schema now includes:
+       {
+         "id": "item_iron_sword_01",
+         "name": "Iron Sword",
+         "type": "weapon",
+         "stat_bonus": {"damage": 5},
+         "durability": 50,
+         "value": 150
+       },
+       {
+         "id": "item_leather_armor_01",
+         "name": "Leather Armor",
+         "type": "armor",
+         "stat_bonus": {"defense": 3},
+         "durability": 40,
+         "value": 120
+       }
+     
+     STEP 3: Inventory UI shows equipment slots:
+       - Two slots at top: "Weapon" and "Armor"
+       - Current equipped item displayed with durability bar
+       - Rest of inventory shows unequipped items
+       - Drag item to slot to equip, or click "Equip" button
+     
+     STEP 4: Equip/unequip logic:
+       def equip_item(player_state, item_id, slot_type):
+         item = find_item(item_id, items.json)
+         if slot_type == "weapon" and item.type != "weapon":
+           return player_state, "Can only equip weapons here."
+         # Remove old equipped item if exists
+         if player_state[f"equipped_{slot_type}"]:
+           old_item_id = player_state[f"equipped_{slot_type}"]["item_id"]
+           player_state["inventory"].append(old_item_id)
+         # Equip new item
+         player_state[f"equipped_{slot_type}"] = {
+           "item_id": item_id,
+           "current_durability": item.durability,
+           "max_durability": item.durability
+         }
+         player_state["inventory"].remove(item_id)
+         return player_state, f"Equipped {item.name}!"
+     
+     WHY:
+     Equipment progression is the core of character growth. Having gear creates
+     replayability: "I want to find better equipment." Equipment makes exploration
+     purposeful and gives dungeon loot value beyond just gold.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have `/equip` command to switch gear
+     - Different gear for different situations creates strategy
+     - "Grinding for better loot" is a proven addiction loop
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/location_actions.py (equip/unequip methods)
+     - File: app/ui/components/complex/inventory_panel.py (equipment UI)
+     - Equipped items shown with durability bar (visual feedback)
+     - Can only equip items of correct type (weapon/armor type checking)
+     - Equipping removes from inventory; unequipping adds back
+     - Equipped items persist in profile save (crucial!)
+     - UI feedback: "You equipped Iron Sword! Damage +5"
+     
+     DESIGN CONSIDERATIONS:
+     - Equipping is instant (no animation needed for text game)
+     - Can unequip by swapping to new item or clicking "Unequip"
+     - Unequipped items take inventory space (creates decision: keep or sell?)
+     - Breaking mechanics (durability): see [3.3]
+     
+     FILES MODIFIED:
+     - app/components/game_engine/state_manager.py (add equipped slots to state)
+     - app/components/game_engine/location_actions.py
+     - app/ui/components/complex/inventory_panel.py (equipment panel)
+     - data/dungeon/items/items.json (add stat_bonus and durability)
+     - data/player/defaults.json (equipped slots start as null)
 
-[11] World Events                                           (GAP-005)
-     Populate data/events/events.json.
-     Implement random city events at location entry.
+---
 
-[12] Save-on-Exit Prompt                                    (GAP-009)
-     Detect unsaved changes. Prompt "Save before quitting?" in quit_app().
+[3.2] Combat Damage Scaling with Equipment
+     
+     WHAT:
+     When calculating combat damage, apply equipped weapon's stat_bonus.
+     When reducing incoming damage, apply equipped armor's stat_bonus as reduction.
+     This makes equipment directly visible in combat mechanics.
+     
+     HOW:
+     
+     STEP 1: Calculate player attack damage:
+       base_player_damage = 1 + random(0, 5)  // baseline
+       if equipped_weapon:
+         weapon_damage_bonus = equipped_weapon["stat_bonus"]["damage"]
+         total_damage = base_player_damage + weapon_damage_bonus
+       else:
+         total_damage = base_player_damage
+     
+     STEP 2: Calculate enemy attack damage received:
+       base_enemy_damage = enemy.damage_min + random(0, enemy.damage_max - enemy.damage_min)
+       if equipped_armor:
+         armor_defense = equipped_armor["stat_bonus"]["defense"]
+         damage_received = max(1, base_enemy_damage - armor_defense)
+       else:
+         damage_received = base_enemy_damage
+     
+     STEP 3: Apply damage:
+       player_hp -= damage_received
+       display: "Enemy deals 6 damage. Your armor absorbs 3! You take 3 HP."
+     
+     WHY:
+     Makes equipment meaningful in real-time combat. Players see their gear
+     working. Incentivizes equipment collection and upgrades. Creates progression
+     feeling: "I hit for 12 now instead of 5!"
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots show "/attack" with your total damage (including gear)
+     - Damage changes feel impactful and encourage gear upgrades
+     - Equipment progression is visible and satisfying
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/combat_system.py
+     - Method: calculate_player_damage(combat_state, equipped_weapon) -> int
+     - Method: calculate_incoming_damage(enemy_damage, equipped_armor) -> int
+     - Combat log shows breakdown: "You deal 8 damage (3 base + 5 sword)!"
+     - Armor shows: "Enemy deals 7 damage (10 base - 3 armor absorbed) = 7 taken"
+     - Armor can't reduce damage below 1 (no invulnerability)
+     
+     DESIGN CONSIDERATIONS:
+     - Damage scaling is linear (sword +5 = 5 extra damage always)
+     - No capping: can combine with buff system for high damage potential
+     - Armor is defensive only (doesn't boost attack)
+     - Different weapons have different bonuses (swords +5, axes +7, etc)
+     - Can fight unequipped (just lower damage)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/combat_system.py (damage calculation)
+     - app/components/game_engine/view_builder.py (display damage breakdown)
+
+---
+
+[3.3] Equipment Durability System
+     
+     WHAT:
+     Equipped items have durability. Each combat attack decrements durability.
+     When durability reaches 0, item breaks and unequips automatically. Breaking
+     items creates a maintenance cost (must repair or find new gear). This drives
+     the economy loop: earn gold -> repair equipment -> get stronger.
+     
+     HOW:
+     
+     STEP 1: Equipment has durability:
+       equipped_weapon = {
+         "item_id": "iron_sword_01",
+         "current_durability": 42,
+         "max_durability": 50
+       }
+     
+     STEP 2: On attack, decrement durability:
+       def attack(self, combat_state):
+         ...
+         player_damage = calculate_player_damage(...)
+         enemy.hp -= player_damage
+         # Decrement equipped weapon durability
+         if self.equipped_weapon:
+           self.equipped_weapon["current_durability"] -= 1
+           if self.equipped_weapon["current_durability"] <= 0:
+             show_message(f"Your {weapon_name} broke!")
+             player_state["equipped_weapon"] = None
+         ...
+     
+     STEP 3: Durability display:
+       - UI shows durability bar: [=========>  ] 42/50
+       - Low durability warning (< 20%): "Your sword is badly damaged! (2/50)"
+       - Color feedback: green -> yellow -> red as durability drops
+     
+     WHY:
+     Durability creates a repeating gold sink. Without maintenance costs, once
+     you get good gear, economy loops stop. Durability forces players to keep
+     engaging with shops and repairs. Psychological effect: "My gear is dying,
+     I need gold!" drives farming.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Some Discord RPG bots have durability (rare, but effective)
+     - Durability creates urgency without being unfair
+     - Maintenance loop keeps players engaged
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/combat_system.py (decrement on attack)
+     - File: app/ui/components/complex/inventory_panel.py (durability display)
+     - Durability only decrements on player attack (not on defend/flee)
+     - Only equipped items lose durability (inventory items safe)
+     - Different gear types degrade at same rate (1 per attack)
+     - Breaking shows message and automatically unequips
+     - Player can still fight with broken item (just at -50% damage?) or must repair
+     
+     DESIGN CONSIDERATIONS:
+     - Durability loss is deterministic (always 1 per attack)
+     - Breaking at 0 prevents negative durability
+     - Armor also degrades (at same rate as weapon)
+     - Degradation is visible to keep player aware
+     - Creates natural stopping point for dungeon runs ("better leave before breaking")
+     
+     FILES MODIFIED:
+     - app/components/game_engine/combat_system.py
+     - app/ui/components/complex/inventory_panel.py (durability bar)
+     - app/components/game_engine/view_builder.py (durability messages)
+
+---
+
+[3.4] Equipment Repair at Blacksmith
+     
+     WHAT:
+     Blacksmith location gets working repair_equipment action. Players can select
+     damaged equipped items and pay gold to repair them to full durability. Repair
+     cost scales with current damage (max cost when fully broken, 0 cost when full).
+     
+     HOW:
+     
+     STEP 1: Define repair action in services.json:
+       {
+         "blacksmiths_street": {
+           "actions": ["buy_weapon", "buy_armor", "repair_equipment", "go_city"],
+           "repair_per_durability_point": 5
+         }
+       }
+     
+     STEP 2: UI shows equipped items with "Repair" button if damaged:
+       - Display only: equipped weapon and armor (not inventory items)
+       - Show current durability and max
+       - Repair cost calculated: (max - current) * repair_per_durability_point
+       - Example: 50 durability sword, current 20 = (50-20)*5 = 150 gold
+     
+     STEP 3: Repair action:
+       def repair_equipment(player_state, item_slot):
+         equipped = player_state[f"equipped_{item_slot}"]
+         if not equipped:
+           return player_state, "Nothing equipped in that slot."
+         damage = equipped["max_durability"] - equipped["current_durability"]
+         repair_cost = damage * prices["repair_per_durability_point"]
+         if player_state["gold"] < repair_cost:
+           return player_state, f"Need {repair_cost} gold (you have {player_state['gold']})."
+         player_state["gold"] -= repair_cost
+         equipped["current_durability"] = equipped["max_durability"]
+         return player_state, f"Repaired! Cost: {repair_cost} gold."
+     
+     WHY:
+     Completes the gear maintenance loop. Players must balance:
+     - Use gear (get stronger) vs. break it (need repair)
+     - Repair now or save gold for shop items
+     - Do one more dungeon run or leave to repair?
+     This creates engaging economic tension.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have "repair" commands in blacksmith NPCs
+     - Repair costs make gold meaningful (something to spend it on)
+     - Maintenance gameplay keeps economy dynamic
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/location_actions.py (repair method)
+     - UI: Blacksmith panel shows only equipped items
+     - Repair cost visible before confirmation
+     - No partial repairs (full repair or nothing)
+     - Repair instantaneous (no cooldown)
+     - Can repair any number of times
+     
+     FILES MODIFIED:
+     - app/components/game_engine/location_actions.py
+     - app/ui/components/complex/location_panel.py (repair UI)
+     - data/economy/prices.json (repair_per_durability_point)
 
 ================================================================================
-TIER 4 — TECHNICAL DEBT / CLEANUP
+TIER 4 — SHOP ECONOMY [v1.0] — BASIC GAMEPLAY LOOP COMPLETE
 ================================================================================
 
-[13] Remove ProfileDialogs duplicate                        (ISSUE-007)
-     Delete app/ui/profile_dialogs.py or merge into ProfileSelector.
+STATUS: Full economy loop functional. Players earn gold, spend gold, maintain gear.
+This is the first "complete" version with all core loops in place.
 
-[14] Complete or remove UIFactory                           (ISSUE-006 / GAP-010)
-     Either implement UIFactory.create() and use it in App, or delete the file.
+[4.1] Shop Inventory & Buy System
+     
+     WHAT:
+     Marketplace, Blacksmith, and Alchemy Hall now have working shops. Each location
+     sells specific item types. Players can browse, see prices, and purchase items.
+     Buying deducts gold and adds item to inventory.
+     
+     HOW:
+     
+     STEP 1: Define shop inventory in services.json:
+       {
+         "marketplace": {
+           "actions": ["buy_item", "sell_item", "go_city"],
+           "shop_inventory": ["item_sword_01", "item_shield_01", "item_potion_01"],
+           "shop_type": "general"
+         },
+         "blacksmiths_street": {
+           "shop_inventory": ["item_iron_sword_01", "item_iron_armor_01", "item_steel_sword_01"],
+           "shop_type": "weapons_armor"
+         },
+         "alchemy_hall": {
+           "shop_inventory": ["item_potion_health_01", "item_potion_mana_01"],
+           "shop_type": "potions"
+         }
+       }
+     
+     STEP 2: UI displays shop inventory:
+       - Show list of items with names and prices (from items.json)
+       - Display currently held gold
+       - Highlight unaffordable items (grayed out)
+       - Show item details on hover: "Iron Sword - Damage +5, 150 gold"
+     
+     STEP 3: Buy action:
+       def buy_item(player_state, item_id):
+         item = find_item(item_id, items.json)
+         if player_state["gold"] < item["value"]:
+           return player_state, f"Not enough gold (need {item['value']})."
+         player_state["gold"] -= item["value"]
+         player_state["inventory"].append(item_id)
+         return player_state, f"Purchased {item['name']} for {item['value']} gold!"
+     
+     STEP 4: Inventory limits (optional):
+       - Can set max items (e.g., 20 items max)
+       - If full: "Your inventory is full."
+       - Encourages selling/using items
+     
+     WHY:
+     Shops create the core economic loop: dungeon rewards gold -> buy gear -> fight
+     harder enemies -> get more gold. Makes progression tangible and cyclical.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have /shop browse and /buy commands
+     - Buying gear is a milestone moment (felt progression)
+     - Shop variety encourages visiting different locations
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/location_actions.py (buy_item method)
+     - File: app/ui/components/complex/location_panel.py (shop UI)
+     - Shop inventory is static per session (no dynamic restock yet)
+     - Prices are from items.json (centralized)
+     - Can buy same item multiple times
+     - No limit on gold (no integer overflow at game scale)
+     - Item display: "[item_name] - $[price] - [stat_bonus text]"
+     
+     DESIGN CONSIDERATIONS:
+     - Shops sell mix of equipment and consumables
+     - Prices balance: expensive enough to require grinding, cheap enough to feel achievable
+     - Different shops sell different items (encourages exploration)
+     - Marketplace = general (any item)
+     - Blacksmith = weapons/armor only
+     - Alchemy = potions only
+     - Shops have limited selection (not all items available)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/location_actions.py
+     - app/ui/components/complex/location_panel.py
+     - data/city/services.json (shop_inventory definitions)
 
-[15] Loot Drop Implementation                               (enemies.json loot_table)
-     After defeating an enemy, roll from its loot_table and add item to inventory.
-     Currently loot_table fields exist but are never read.
+---
+
+[4.2] Sell System: Inventory to Gold
+     
+     WHAT:
+     Players can sell unwanted items for gold. Sell price is usually 40-50% of buy
+     price (standard RPG economy). This allows inventory management and liquidates
+     unwanted loot.
+     
+     HOW:
+     
+     STEP 1: Sell action:
+       def sell_item(player_state, item_id):
+         item = find_item(item_id, items.json)
+         sell_price = int(item["value"] * 0.4)  // 40% of buy price
+         if item_id not in player_state["inventory"]:
+           return player_state, "You don't have that item."
+         player_state["gold"] += sell_price
+         player_state["inventory"].remove(item_id)
+         return player_state, f"Sold {item['name']} for {sell_price} gold."
+     
+     STEP 2: UI Implementation:
+       - Show inventory list
+       - Each item shows sell price (calculated from item.value * 0.4)
+       - Click item to select, then confirm "Sell [item] for [gold]?"
+       - On confirm: item removed, gold added
+     
+     STEP 3: Prevent selling equipped items:
+       - Can't sell equipped weapon/armor (must unequip first)
+       - UI shows: "This item is equipped. Unequip it first."
+     
+     WHY:
+     Completes the economy loop. Without selling, inventory fills with useless loot.
+     Selling lets players clean up and convert dungeon junk to spending gold.
+     Creates decision: keep item in case I find use for it, or sell now for gold?
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have /sell command for unwanted loot
+     - Selling feels rewarding (convert trash to currency)
+     - Creates decision tree on what to keep vs. discard
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/location_actions.py (sell_item method)
+     - File: app/ui/components/complex/inventory_panel.py (sell UI)
+     - Sell price: 40% of item.value (configurable)
+     - Can only sell items in inventory (not equipped)
+     - Can sell to any shop (standardized prices)
+     - Sell confirmation prevents accidental sales
+     
+     DESIGN CONSIDERATIONS:
+     - Sell price < buy price creates incentive to not waste gold
+     - Different item rarities could have different sell %
+     - Can sell consumables, equipment, misc items
+     - Selling is instant (no animation)
+     - No limit on how much you can sell
+     
+     FILES MODIFIED:
+     - app/components/game_engine/location_actions.py
+     - app/ui/components/complex/inventory_panel.py (sell UI)
+     - data/economy/prices.json (add sell_price_multiplier: 0.4)
+
+---
+
+[4.3] Loot Drop System Implementation
+     
+     WHAT:
+     When defeating an enemy in the dungeon, randomly roll from the enemy's
+     loot_table and add items to inventory. Previously loot_table existed but
+     was never used. Now enemies drop loot on defeat.
+     
+     HOW:
+     
+     STEP 1: Enemy loot_table structure:
+       {
+         "id": "enemy_bloat_rat_01",
+         "name": "Bloated Rat",
+         "loot_table": ["item_bone_shard_01", "item_tattered_cloth_01", "item_reagent_01"],
+         "loot_chance": 0.6,  // 60% chance to drop ANY loot
+         "loot_count": 1      // drop 1 item if roll succeeds
+       }
+     
+     STEP 2: Loot drop on defeat:
+       def defeat_enemy(combat_state):
+         enemy = combat_state["enemy"]
+         if random() < enemy["loot_chance"]:
+           for _ in range(enemy["loot_count"]):
+             item = random.choice(enemy["loot_table"])
+             player_state["inventory"].append(item)
+             show_message(f"Enemy dropped {item_name}!")
+     
+     STEP 3: Loot rarity:
+       - Common items: 70% drop rate
+       - Uncommon items: 30% drop rate
+       - Rare items: 5% drop rate
+       - Combine in same loot_table with weights
+     
+     WHY:
+     Loot drops are the core reward system. Without them, defeating enemies gives
+     only gold. With loot, players get gear, consumables, crafting materials.
+     Creates multiple reward types and encourages fighting.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots show "Enemy dropped [item]!" in chat
+     - Loot surprises are highly rewarding
+     - Variability keeps combat exciting (what will they drop?)
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/combat_system.py (roll loot on defeat)
+     - File: app/components/game_engine/view_builder.py (display loot messages)
+     - Loot roll uses seeded random for reproducibility
+     - Can implement loot rarity as item attribute or table weights
+     - Loot display in combat log: "Defeated rat! Dropped: bone shard, tattered cloth"
+     - Loot added to inventory (space check for limits)
+     - If inventory full: drop items on ground? Or convert to gold?
+     
+     DESIGN CONSIDERATIONS:
+     - Loot adds replayability (different drops on retry)
+     - Rare drops create engagement: "Did I get the rare item?"
+     - Loot quantity scales with enemy difficulty
+     - Can combine loot + gold drops for variety
+     - Loot persistence: items saved in profile (crucial)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/combat_system.py
+     - data/dungeon/enemies/enemies.json (loot_table, loot_chance, loot_count)
+     - app/components/game_engine/view_builder.py (loot message display)
 
 ================================================================================
-NOTES
+TIER 5 — WORLD EVENTS & RANDOMIZATION [v1.1]
 ================================================================================
 
-- Items [1]-[3] are blockers: without them the game cannot be lost or completed.
-- Item [4] is a content blocker: without lore text the game feels broken even
-  if mechanics work.
-- Items [5]-[8] unlock the economy loop which gives gold a purpose.
-- Items [9]-[11] add replayability and world depth.
-- Items [12]-[15] are polish and cleanup that improve the codebase quality.
+STATUS: World feels alive. Random events create surprise and engagement.
+
+[5.1] Event System Infrastructure
+     
+     WHAT:
+     Implement an EventSystem that triggers random events when players visit
+     locations or take actions. Each event has a chance to occur, description,
+     and effects. Events can modify gold, add items, inflict debuffs, or display
+     flavor text. This adds unpredictability and engagement hooks.
+     
+     HOW:
+     
+     STEP 1: Event structure in data/events/events.json:
+       [
+         {
+           "id": "event_tavern_drunk_01",
+           "location_id": "tavern",
+           "trigger": "on_visit",      // when event checks
+           "chance": 0.15,              // 15% chance to trigger
+           "description": "A drunk bumps into you and spills ale...",
+           "outcomes": [                // random choice
+             {
+               "chance": 0.7,
+               "text": "He apologizes profusely and gives you 10 gold!",
+               "effects": {"gold": 10}
+             },
+             {
+               "chance": 0.3,
+               "text": "He curses you! You feel cursed...",
+               "effects": {"add_debuff": "cursed_1"}
+             }
+           ]
+         }
+       ]
+     
+     STEP 2: EventManager implementation:
+       class EventManager:
+         def __init__(self, events_data):
+           self.events = events_data
+         
+         def get_location_events(self, location_id):
+           return [e for e in self.events if e["location_id"] == location_id]
+         
+         def trigger_location_events(self, player_state, location_id):
+           events = self.get_location_events(location_id)
+           for event in events:
+             if random() < event["chance"]:
+               return self.resolve_event(player_state, event)
+           return player_state, None
+         
+         def resolve_event(self, player_state, event):
+           outcome = random.choice(event["outcomes"])
+           player_state = apply_effects(player_state, outcome["effects"])
+           return player_state, outcome["text"]
+     
+     STEP 3: Integration:
+       - On entering location: call EventManager.trigger_location_events()
+       - On showing location view: display event text if triggered
+       - Events are optional display layer (don't break core gameplay)
+     
+     WHY:
+     Events create surprise and excitement. Even familiar locations feel fresh
+     when something random happens. Psychological engagement hook: "What will
+     happen this time?" keeps players engaged.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have random events: "A wild boss appears!"
+     - Randomness creates FOMO (fear of missing out)
+     - Events make repeated play feel different
+     
+     IMPLEMENTATION DETAILS:
+     - File: app/components/game_engine/event_system.py (NEW FILE)
+     - File: app/game_engine.py (call trigger on location entry)
+     - Events are pure data, no hardcoding
+     - Outcome selection is weighted random (if chance fields provided)
+     - Event effects use same resolver as consumables (healing, debuffs, gold)
+     - Multiple events can trigger per visit (each rolls independently)
+     - Event state not persisted (no "defeated event" tracking, can repeat)
+     
+     DESIGN CONSIDERATIONS:
+     - Events are opt-in (player can disable in settings?)
+     - Mostly positive or neutral (no harsh punishments)
+     - Good events (~70% positive, 30% negative) to feel rewarding
+     - Location-specific events feel contextual
+     - Event text is flavor (doesn't affect mechanical gameplay)
+     
+     FILES MODIFIED:
+     - app/components/game_engine/event_system.py (NEW)
+     - app/game_engine.py (call trigger_location_events)
+     - data/events/events.json (populate with 20+ events)
+
+---
+
+[5.2] City Location Events
+     
+     WHAT:
+     Specific events for each city location. Tavern has drunk/gambler/bard events.
+     Marketplace has merchant/pickpocket/sale events. Dungeon entrance has ambush
+     warnings. Each location feels distinctive through its events.
+     
+     HOW:
+     
+     STEP 1: Define location-specific events:
+       
+       Tavern:
+       - "Drunk bumps into you" (15%): +10 gold or -1 HP
+       - "Bard plays inspiring song" (10%): +1 buff "Inspired" (next attack +2)
+       - "Gambler approaches you" (8%): lose 20 gold or win 50 gold (50/50)
+       
+       Marketplace:
+       - "Price drop!" (12%): all items 20% cheaper this visit
+       - "Pickpocket!" (5%): lose 20 gold (or dodge?)
+       - "Merchant's sale!" (10%): find random item on ground (+1 item)
+       
+       Dungeon Entrance:
+       - "You hear screams from below" (8%): -1 max HP for this run
+       - "Supplies dropped at entrance" (5%): +1 potion
+       - "Ominous warning" (7%): text only, no effect ("Beware the depths...")
+     
+     WHY:
+     Location-specific events add personality to the world. Players learn which
+     locations are "lucky" and which are "dangerous." Creates superstition-like
+     engagement: "I always get good deals at tavern, so I'll shop there more."
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord bots have location-based commands with different rewards
+     - Same action in different locations has different consequences
+     - World feels consistent and interactive
+     
+     IMPLEMENTATION DETAILS:
+     - File: data/events/events.json (add 3-5 events per location)
+     - Each event has trigger (on_visit), chance (0.05-0.15), outcomes
+     - Outcomes can modify: gold, inventory, buffs, debuffs, max_hp, text
+     - Event text displayed in location description area
+     - Events fire once per visit (not on repeat visits in same session)
+     
+     DESIGN CONSIDERATIONS:
+     - Positive and negative events roughly balanced
+     - Powerful events have low chance (<5%)
+     - Minor events have higher chance (10-15%)
+     - Events are non-permanent (no lasting story changes, see Tier 25)
+     - Events flavor, not mechanics
+     
+     FILES MODIFIED:
+     - data/events/events.json (populate location-specific events)
+
+---
+
+[5.3] Dungeon Room Randomization
+     
+     WHAT:
+     Dungeon rooms already have random content (enemy/item/empty). Now add
+     random events within dungeons. Trapped rooms, treasure hoards, cursed
+     areas with debuffs. Each room feels unique.
+     
+     HOW:
+     
+     STEP 1: Dungeon-specific events:
+       [
+         {
+           "id": "event_dungeon_trapped_room",
+           "location_id": "dungeon",
+           "trigger": "on_room_enter",
+           "chance": 0.2,
+           "description": "You step on a loose tile. Darts fly from the walls!",
+           "effects": {"damage": 5, "add_debuff": "bleeding_1"}
+         },
+         {
+           "id": "event_dungeon_treasure",
+           "location_id": "dungeon",
+           "trigger": "on_room_enter",
+           "chance": 0.1,
+           "description": "You find a hidden stash of gold!",
+           "effects": {"gold": 100, "add_item": "item_treasure_chest_01"}
+         }
+       ]
+     
+     STEP 2: Room entry event trigger:
+       def enter_room(dungeon_run, room):
+         room_state = ...
+         player_state, event_msg = event_system.trigger_dungeon_events(player_state)
+         if event_msg:
+           show_message(event_msg)
+         return room_state, player_state
+     
+     WHY:
+     Dungeon randomness is crucial engagement. Knowing what to expect makes runs
+     boring. Random traps/treasures keep dungeon exploration exciting. Psychological:
+     "What if I find treasure?" keeps players entering dungeons.
+     
+     INSPIRATION FROM DISCORD BOTS:
+     - Discord dungeon bots have random encounters per room
+     - Encountering something different is rewarding
+     - Risk/reward tension (trap or treasure?) drives engagement
+     
+     IMPLEMENTATION DETAILS:
+     - File: data/events/events.json (add dungeon events)
+     - Events trigger once per room entry
+     - Trap events can damage player or add debuff
+     - Treasure events are rare and high-reward
+     - Event text shown after room description
+     - Can happen even if room is empty/has enemy
+     
+     DESIGN CONSIDERATIONS:
+     - Traps are punishing but not game-ending (5-10 damage)
+     - Treasures are rare (5-10% chance) to feel special
+     - Both trap and treasure can happen in same room (rare)
+     - Event rewards scale with dungeon depth
+     
+     FILES MODIFIED:
+     - data/events/events.json (add dungeon events)
+     - app/components/game_engine/dungeon_manager.py (trigger on room enter)
