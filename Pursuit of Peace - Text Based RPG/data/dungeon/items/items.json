@@ -1,0 +1,218 @@
+[
+  {
+    "id": "item_crude_knife_01",
+    "name": "Crude Knife",
+    "type": "weapon",
+    "min_depth": 0,
+    "value": 8,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_iron_bar_01",
+    "name": "Iron Bar",
+    "type": "weapon",
+    "min_depth": 2,
+    "value": 18,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_sword_iron_01",
+    "name": "Iron Sword",
+    "type": "weapon",
+    "min_depth": 0,
+    "value": 40,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_axe_iron_01",
+    "name": "Iron Axe",
+    "type": "weapon",
+    "min_depth": 0,
+    "value": 38,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_tattered_cloth_01",
+    "name": "Tattered Cloth Wrap",
+    "type": "armor",
+    "min_depth": 1,
+    "value": 4,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_armor_leather_01",
+    "name": "Leather Vest",
+    "type": "armor",
+    "min_depth": 0,
+    "value": 30,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_armor_chain_01",
+    "name": "Chain Shirt",
+    "type": "armor",
+    "min_depth": 3,
+    "value": 65,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_armor_bone_plate_01",
+    "name": "Bone Plate Vest",
+    "type": "armor",
+    "min_depth": 5,
+    "value": 90,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_bandage_01",
+    "name": "Cloth Bandage",
+    "type": "consumable",
+    "min_depth": 0,
+    "value": 6,
+    "effect": "Restores 5 hp",
+    "source": null
+  },
+  {
+    "id": "item_potion_health_01",
+    "name": "Watered-Down Tonic",
+    "type": "consumable",
+    "min_depth": 0,
+    "value": 12,
+    "effect": "Restores 10 hp",
+    "source": null
+  },
+  {
+    "id": "item_potion_health_02",
+    "name": "Concentrated Tonic",
+    "type": "consumable",
+    "min_depth": 3,
+    "value": 25,
+    "effect": "Restores 20 hp",
+    "source": null
+  },
+  {
+    "id": "item_antidote_01",
+    "name": "Crude Antidote",
+    "type": "consumable",
+    "min_depth": 0,
+    "value": 15,
+    "effect": "Removes the poisoned debuff",
+    "source": null
+  },
+  {
+    "id": "item_ration_01",
+    "name": "Dried Ration",
+    "type": "consumable",
+    "min_depth": 0,
+    "value": 5,
+    "effect": "Restores 4 hp",
+    "source": null
+  },
+  {
+    "id": "item_potion_strength_01",
+    "name": "Muscle Draught",
+    "type": "consumable",
+    "min_depth": 2,
+    "value": 30,
+    "effect": "Increases damage by 3 for 3 turns",
+    "source": null
+  },
+  {
+    "id": "item_bone_shard_01",
+    "name": "Bone Shard",
+    "type": "misc",
+    "min_depth": 1,
+    "value": 3,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_strange_residue_01",
+    "name": "Strange Residue",
+    "type": "misc",
+    "min_depth": 4,
+    "value": 20,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_reagent_sulfur_01",
+    "name": "Sulfur Chunk",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 10,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_reagent_root_01",
+    "name": "Bitter Root",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 8,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_fish_common_01",
+    "name": "River Perch",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 5,
+    "effect": null,
+    "source": "fishing"
+  },
+  {
+    "id": "item_fish_bony_01",
+    "name": "Bony Grey Carp",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 4,
+    "effect": null,
+    "source": "fishing"
+  },
+  {
+    "id": "item_fish_bloated_01",
+    "name": "Bloated Mudfish",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 2,
+    "effect": null,
+    "source": "fishing"
+  },
+  {
+    "id": "item_torch_01",
+    "name": "Pitch Torch",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 7,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_rope_01",
+    "name": "Frayed Rope",
+    "type": "misc",
+    "min_depth": 0,
+    "value": 6,
+    "effect": null,
+    "source": null
+  },
+  {
+    "id": "item_shield_wood_01",
+    "name": "Cracked Wooden Shield",
+    "type": "armor",
+    "min_depth": 0,
+    "value": 22,
+    "effect": null,
+    "source": null
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "hp": 20,
+  "max_hp": 20,
+  "gold": 50,
+  "level": 1,
+  "inventory": [],
+  "year": 1,
+  "tax_paid": false,
+  "buffs": []
+}

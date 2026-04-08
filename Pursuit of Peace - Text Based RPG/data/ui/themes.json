@@ -1,0 +1,40 @@
+{
+  "global": {
+    "bg": "#0d1b2a",
+    "fg": "#d4c9a8",
+    "font_family": "Courier",
+    "font_size": 11,
+    "heading_font_size": 13,
+    "button_padding": [12, 6],
+    "active_bg": "#e94560",
+    "active_fg": "#ffffff"
+  },
+  "TextDisplay": {
+    "bg": "#1a1a2e",
+    "fg": "#d4c9a8"
+  },
+  "MenuList": {
+    "bg": "#16213e",
+    "fg": "#d4c9a8",
+    "hover_bg": "#0f3460",
+    "active_bg": "#e94560",
+    "active_fg": "#ffffff"
+  },
+  "StatBar": {
+    "bg": "#16213e",
+    "label_fg": "#7a8fa6",
+    "value_fg": "#e2b96f"
+  },
+  "LocationPanel": {
+    "bg": "#16213e"
+  },
+  "CombatPanel": {
+    "bg": "#1a0a0a"
+  },
+  "InventoryPanel": {
+    "bg": "#16213e"
+  },
+  "LorePanel": {
+    "bg": "#16213e"
+  }
+}
