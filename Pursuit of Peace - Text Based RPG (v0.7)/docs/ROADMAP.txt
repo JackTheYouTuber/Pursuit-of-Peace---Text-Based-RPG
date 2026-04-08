@@ -1,0 +1,100 @@
+PURSUIT OF PEACE — DEVELOPMENT ROADMAP
+=======================================
+
+Priority order for future development. Each item references the KNOWN_GAPS.md
+or KNOWN_ISSUES.md entry it resolves.
+
+================================================================================
+TIER 1 — CORE GAMEPLAY (Must-Have for a Playable Game)
+================================================================================
+
+[1] ✓ Enemy Counter-Attack in Combat  (DONE v0.7)                          (ISSUE-001)
+    Enemies deal damage_min..damage_max HP to the player each combat round.
+    Without this, combat has zero risk and no purpose.
+
+[2] ✓ Player Death Handling  (DONE v0.7)                                   (ISSUE-002)
+    When player HP <= 0, end combat, show game-over dialog, allow restart.
+    Depends on [1].
+
+[3] ✓ Year Rollover Trigger  (DONE v0.7)                                   (ISSUE-008 / GAP-006)
+    Implement a time mechanic (e.g. action counter or day counter per year).
+    Call process_year_rollover() at year-end.
+    Show exile screen if tax is unpaid.
+    Without this the entire tax system is cosmetic.
+
+[4] ✓ Populate Dungeon Lore Text  (DONE v0.7)                              (ISSUE-009 / GAP-011)
+    Fill data/lore/dungeon.json with room descriptions.
+    Fill data/lore/*.json for all empty city locations.
+    Currently most screens show blank description areas.
+
+================================================================================
+TIER 2 — ECONOMY AND PROGRESSION (Makes the Game a Game)
+================================================================================
+
+[5] Consumable Use                                          (ISSUE-004 / GAP-003)
+    Add "Use" button in Inventory view.
+    Implement effect resolver: heal HP, remove debuffs, apply temp buffs.
+
+[6] Equipment System                                        (GAP-002)
+    Add equipped_weapon and equipped_armor to player state.
+    Equip/unequip from Inventory view.
+    Apply weapon bonus to combat damage.
+    Apply armor reduction to incoming damage.
+
+[7] Shop System — Buy/Sell                                  (GAP-001)
+    Implement buy_item, sell_item at Marketplace.
+    Implement buy_weapon, buy_armor at Blacksmiths Street.
+    Implement buy_potion at Alchemy Hall.
+    Implement repair_equipment at Blacksmiths.
+    Requires equipment system [6].
+
+[8] Buff/Debuff System                                      (ISSUE-005 / GAP-004)
+    Apply active buffs (from bath, potions) to stats each turn.
+    Track duration. Expire buffs at round-end or rest.
+    Implement "poisoned" debuff inflicted by certain enemies.
+
+================================================================================
+TIER 3 — CONTENT AND POLISH
+================================================================================
+
+[9] Coliseum / Arena                                        (ISSUE-003 / GAP-007)
+    Implement enter_combat_event (fight a defined opponent for a prize).
+    Implement place_wager (bet gold on outcome).
+    Implement watch_combat_event (spend time, gain rumor/lore).
+
+[10] Crafting System                                        (GAP-008)
+     Implement craft_consumable at Alchemy Hall.
+     Define a recipe table (JSON).
+     Implement sell_reagent.
+
+[11] World Events                                           (GAP-005)
+     Populate data/events/events.json.
+     Implement random city events at location entry.
+
+[12] Save-on-Exit Prompt                                    (GAP-009)
+     Detect unsaved changes. Prompt "Save before quitting?" in quit_app().
+
+================================================================================
+TIER 4 — TECHNICAL DEBT / CLEANUP
+================================================================================
+
+[13] Remove ProfileDialogs duplicate                        (ISSUE-007)
+     Delete app/ui/profile_dialogs.py or merge into ProfileSelector.
+
+[14] Complete or remove UIFactory                           (ISSUE-006 / GAP-010)
+     Either implement UIFactory.create() and use it in App, or delete the file.
+
+[15] Loot Drop Implementation                               (enemies.json loot_table)
+     After defeating an enemy, roll from its loot_table and add item to inventory.
+     Currently loot_table fields exist but are never read.
+
+================================================================================
+NOTES
+================================================================================
+
+- Items [1]-[3] are blockers: without them the game cannot be lost or completed.
+- Item [4] is a content blocker: without lore text the game feels broken even
+  if mechanics work.
+- Items [5]-[8] unlock the economy loop which gives gold a purpose.
+- Items [9]-[11] add replayability and world depth.
+- Items [12]-[15] are polish and cleanup that improve the codebase quality.

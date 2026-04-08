@@ -1,0 +1,62 @@
+[
+  {
+    "id": "city_entrance",
+    "name": "City Gates",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "tavern",
+    "name": "Tavern",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "marketplace",
+    "name": "Marketplace",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "alchemy_hall",
+    "name": "Alchemy Hall",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "blacksmiths_street",
+    "name": "Blacksmiths Street",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "city_hall",
+    "name": "City Hall",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "coliseum",
+    "name": "Coliseum",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "public_bath",
+    "name": "Public Bath",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "the_river",
+    "name": "The River",
+    "access": "always",
+    "condition_ref": null
+  },
+  {
+    "id": "dungeon_entrance",
+    "name": "Dungeon Entrance",
+    "access": "always",
+    "condition_ref": null
+  }
+]

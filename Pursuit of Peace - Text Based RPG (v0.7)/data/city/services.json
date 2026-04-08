@@ -1,0 +1,40 @@
+{
+  "city_entrance": {
+    "actions": ["go_tavern", "go_marketplace", "go_alchemy_hall", "go_blacksmiths_street", "go_city_hall", "go_coliseum", "go_public_bath", "go_the_river", "go_dungeon"]
+  },
+  "tavern": {
+    "actions": ["rest", "hear_rumors", "go_city"],
+    "rest_cost": 10
+  },
+  "marketplace": {
+    "actions": ["buy_item", "sell_item", "go_city"]
+  },
+  "alchemy_hall": {
+    "actions": ["buy_potion", "sell_reagent", "craft_consumable", "go_city"]
+  },
+  "blacksmiths_street": {
+    "actions": ["buy_weapon", "buy_armor", "repair_equipment", "go_city"]
+  },
+  "city_hall": {
+    "actions": ["pay_taxes", "view_debt", "go_city"]
+  },
+  "coliseum": {
+    "actions": ["enter_combat_event", "watch_combat_event", "place_wager", "go_city"]
+  },
+  "public_bath": {
+    "actions": ["take_bath", "go_city"],
+    "bath_cost": 15,
+    "bath_buff": {
+      "stat": "max_hp",
+      "amount": 5,
+      "duration": "one_run",
+      "label": "Refreshed"
+    }
+  },
+  "the_river": {
+    "actions": ["go_fishing", "go_city"]
+  },
+  "dungeon_entrance": {
+    "actions": ["enter_dungeon", "go_city"]
+  }
+}

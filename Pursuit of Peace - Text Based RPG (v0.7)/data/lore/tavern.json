@@ -1,0 +1,26 @@
+[
+  {
+    "type": "description",
+    "text": "The Tavern is everything a tavern should be: smoky, low-ceilinged, and full of people who are either starting something or finishing it. The barkeep knows most of their names and has learned not to ask about the rest. A fire has burned in the hearth every day for forty years. The same cannot be said for all the regulars."
+  },
+  {
+    "type": "ambient",
+    "text": "Dice rattle on a table near the window. Someone loses; someone else is careful not to look too pleased about it."
+  },
+  {
+    "type": "rumor",
+    "text": "A merchant swears he saw lights moving in the dungeon last week. Not torchlight — something else. He has stopped going near the entrance road."
+  },
+  {
+    "type": "rumor",
+    "text": "Word from the city guard: the creatures in the deeper levels have been louder of late. The duty captain doubled the watch on the culverts, just in case."
+  },
+  {
+    "type": "rumor",
+    "text": "A fisherman pulled something up from the river that he could not identify. He threw it back immediately. He has not been back to the river since."
+  },
+  {
+    "type": "rumor",
+    "text": "The tax collector's office is apparently understaffed this year. That's always been when the rules get enforced hardest, not least."
+  }
+]
