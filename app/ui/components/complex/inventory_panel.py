@@ -1,20 +1,14 @@
 import tkinter as tk
-
+from tkinter import ttk
+from app.ui.style_manager import StyleManager
+import app.ui.constants as const
 from ..basic.menu_list import MenuList
 from ..basic.text_display import TextDisplay
 
-class InventoryPanel(tk.Frame):
-    """MenuList (items) + TextDisplay (detail). Layer 2."""
 
-    BG = "#16213e"
-
+class InventoryPanel(ttk.Frame):
     def __init__(self, parent, data=None, on_select=None, logger=None, **kwargs):
-        """
-        data      — {"items": [{"id": str, "label": str}], "detail": str}
-        on_select — callback(item_id: str)
-        """
-        bg = kwargs.pop('bg', self.BG)
-        super().__init__(parent, bg=bg, **kwargs)
+        super().__init__(parent, **kwargs)
         self._logger = logger
         self._on_select = on_select
 
@@ -23,9 +17,8 @@ class InventoryPanel(tk.Frame):
         tk.Label(
             self,
             text="— INVENTORY —",
-            font=("Courier", 10, "bold"),
-            fg="#7a8fa6",
-            bg=self.BG,
+            font=("Segoe UI", 10, "bold"),
+            bg=const.CARD_BG,
         ).pack(pady=(6, 2))
 
         self._items = MenuList(
@@ -38,14 +31,14 @@ class InventoryPanel(tk.Frame):
         self._detail = TextDisplay(self, content=data.get("detail", ""))
         self._detail.pack(fill=tk.X, padx=4, pady=(2, 4))
 
-    def _handle_select(self, item_id):
+    def _handle_select(self, item_id: str) -> None:
         if self._logger:
             self._logger.data("inventory_select", item_id)
         if self._on_select:
             self._on_select(item_id)
 
-    def update_items(self, items):
+    def update_items(self, items: list) -> None:
         self._items.set_items(items)
 
-    def update_detail(self, text):
+    def update_detail(self, text: str) -> None:
         self._detail.set_content(text)

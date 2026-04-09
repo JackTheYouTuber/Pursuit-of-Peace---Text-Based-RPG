@@ -1,15 +1,17 @@
 import tkinter as tk
-from .theme import CARD_BG, TEXT_FG, FONT_BODY, PAD_SMALL
+from tkinter import ttk
+from app.ui.style_manager import StyleManager
+import app.ui.constants as const
 
-class TextDisplay(tk.Frame):
-    def __init__(self, parent, content="", **kwargs):
-        bg = kwargs.pop('bg', CARD_BG)
-        super().__init__(parent, bg=bg, **kwargs)
-        self._bg = bg
-        self._font = FONT_BODY
-        self._fg = TEXT_FG
 
-        self._scrollbar = tk.Scrollbar(self, orient=tk.VERTICAL)
+class TextDisplay(ttk.Frame):
+    def __init__(self, parent, content="", bg=None, fg=None, **kwargs):
+        super().__init__(parent, **kwargs)
+        self._bg = bg if bg is not None else const.CARD_BG
+        self._font = const.FONT_BODY
+        self._fg = fg if fg is not None else const.TEXT_FG
+
+        self._scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL)
         self._text = tk.Text(
             self,
             wrap=tk.WORD,
@@ -19,10 +21,12 @@ class TextDisplay(tk.Frame):
             bg=self._bg,
             yscrollcommand=self._scrollbar.set,
             relief=tk.FLAT,
-            padx=PAD_SMALL,
-            pady=PAD_SMALL,
+            padx=const.PAD_SMALL,
+            pady=const.PAD_SMALL,
             cursor="arrow",
             selectbackground=self._bg,
+            borderwidth=0,
+            highlightthickness=0,
         )
         self._scrollbar.config(command=self._text.yview)
         self._scrollbar.pack(side=tk.RIGHT, fill=tk.Y)

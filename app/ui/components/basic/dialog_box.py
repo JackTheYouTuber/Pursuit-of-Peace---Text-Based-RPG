@@ -1,9 +1,10 @@
 import tkinter as tk
-from .theme import CARD_BG, TEXT_FG, ACCENT_FG, ACTIVE_BG, ACTIVE_FG, FONT_TITLE, FONT_BODY, FONT_BOLD, PAD_MEDIUM, PAD_LARGE
+from app.ui.style_manager import StyleManager
+import app.ui.constants as const
 
 class DialogBox(tk.Toplevel):
     def __init__(self, parent, title="", body="", on_dismiss=None, **kwargs):
-        bg = kwargs.pop('bg', CARD_BG)
+        bg = kwargs.pop('bg', const.CARD_BG)
         super().__init__(parent, bg=bg, **kwargs)
         self.title(title)
         self.configure(bg=bg)
@@ -14,35 +15,35 @@ class DialogBox(tk.Toplevel):
         tk.Label(
             self,
             text=title,
-            font=FONT_TITLE,
-            fg=ACCENT_FG,
+            font=const.FONT_TITLE,
+            fg=const.ACCENT_FG,
             bg=bg,
-        ).pack(padx=PAD_LARGE, pady=(PAD_LARGE, PAD_MEDIUM))
+        ).pack(padx=const.PAD_LARGE, pady=(const.PAD_LARGE, const.PAD_MEDIUM))
 
         tk.Label(
             self,
             text=body,
-            font=FONT_BODY,
-            fg=TEXT_FG,
+            font=const.FONT_BODY,
+            fg=const.TEXT_FG,
             bg=bg,
             wraplength=340,
             justify=tk.LEFT,
-        ).pack(padx=PAD_LARGE, pady=(PAD_MEDIUM, PAD_LARGE))
+        ).pack(padx=const.PAD_LARGE, pady=(const.PAD_MEDIUM, const.PAD_LARGE))
 
         tk.Button(
             self,
             text="Dismiss",
-            font=FONT_BOLD,
-            bg=ACTIVE_BG,
-            fg=ACTIVE_FG,
-            activebackground=ACTIVE_BG,
-            activeforeground=ACTIVE_FG,
+            font=const.FONT_BOLD,
+            bg=const.ACTIVE_BG,
+            fg=const.ACTIVE_FG,
+            activebackground=const.ACTIVE_BG,
+            activeforeground=const.ACTIVE_FG,
             relief=tk.FLAT,
-            padx=BUTTON_PADX,
-            pady=BUTTON_PADY,
+            padx=const.BUTTON_PADX,
+            pady=const.BUTTON_PADY,
             cursor="hand2",
             command=self._handle_dismiss,
-        ).pack(pady=(0, PAD_LARGE))
+        ).pack(pady=(0, const.PAD_LARGE))
 
         self._center(parent)
 

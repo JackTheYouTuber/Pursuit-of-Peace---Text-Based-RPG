@@ -1,10 +1,10 @@
 import tkinter as tk
-from .theme import PANEL_BG, TEXT_FG, ACTIVE_BG, ACTIVE_FG, HOVER_BG, FONT_BODY, PAD_SMALL
+from tkinter import ttk
+from app.ui.style_manager import StyleManager
 
-class MenuList(tk.Frame):
+class MenuList(ttk.Frame):
     def __init__(self, parent, items=None, on_select=None, columns=1, **kwargs):
-        bg = kwargs.pop('bg', PANEL_BG)
-        super().__init__(parent, bg=bg, **kwargs)
+        super().__init__(parent, **kwargs)
         self._on_select = on_select
         self._buttons = []
         self._items = []
@@ -22,28 +22,17 @@ class MenuList(tk.Frame):
         for idx, item in enumerate(self._items):
             item_id = item["id"]
             label = item["label"]
-            btn = tk.Button(
+            btn = ttk.Button(
                 self,
                 text=label,
-                font=FONT_BODY,
-                bg=PANEL_BG,
-                fg=TEXT_FG,
-                activebackground=ACTIVE_BG,
-                activeforeground=ACTIVE_FG,
-                relief=tk.FLAT,
-                padx=PAD_SMALL,
-                pady=PAD_SMALL,
-                cursor="hand2",
+                style="TButton",
                 command=lambda i=item_id: self._handle_select(i),
             )
-            btn.bind("<Enter>", lambda e, b=btn: b.config(bg=HOVER_BG))
-            btn.bind("<Leave>", lambda e, b=btn: b.config(bg=PANEL_BG))
             row = idx // cols
             col = idx % cols
             btn.grid(row=row, column=col, sticky="nsew", padx=2, pady=2)
             self._buttons.append(btn)
 
-        # Configure grid weights
         for c in range(cols):
             self.columnconfigure(c, weight=1)
         rows_needed = (len(items) + cols - 1) // cols

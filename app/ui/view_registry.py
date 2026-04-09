@@ -1,8 +1,10 @@
 import tkinter as tk
+from tkinter import ttk
 from typing import Dict, Any, Optional
 
 from app.ui.layout_loader import load_layout
 from app.ui.component_builder import ComponentBuilder
+
 
 class ViewRegistry:
     def __init__(self, root: tk.Widget, callbacks: Dict, theme: Dict, layouts_dir: str, logger=None):
@@ -18,8 +20,8 @@ class ViewRegistry:
 
         layout = load_layout(view_name, self._layouts_dir, self._logger)
         if not layout:
-            frame = tk.Frame(self._root, bg="#0d1b2a")
-            tk.Label(frame, text=f"View '{view_name}' not found", fg="red").pack()
+            frame = ttk.Frame(self._root)
+            ttk.Label(frame, text=f"View '{view_name}' not found", foreground="red").pack()
             self._views[view_name] = {"frame": frame, "components": {}}
             return frame
 
@@ -40,7 +42,6 @@ class ViewRegistry:
             bindings = info.get("bindings", {})
             if not bindings:
                 continue
-            # Determine component type from widget class name (or store type during build)
             comp_type = self._get_component_type(widget)
             if comp_type:
                 self._builder.refresh_component(widget, comp_type, state, bindings)
@@ -50,9 +51,9 @@ class ViewRegistry:
         if view_info:
             view_info["frame"].destroy()
 
-    def _get_component_type(self, widget) -> Optional[str]:
+    @staticmethod
+    def _get_component_type(widget) -> Optional[str]:
         classname = widget.__class__.__name__
-        # Map class name to component type string
         mapping = {
             "TextDisplay": "TextDisplay",
             "MenuList": "MenuList",

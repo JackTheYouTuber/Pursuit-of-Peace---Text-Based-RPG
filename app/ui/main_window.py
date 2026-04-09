@@ -1,16 +1,22 @@
-import tkinter as tk
+﻿import tkinter as tk
+from tkinter import ttk
+from app.ui.style_manager import StyleManager
 from app.ui.components.complex.player_panel import PlayerPanel
 
 
 class MainWindow:
     """Manages the sidebar and content frame within an existing root."""
 
-    BG = "#0d1b2a"
-    SIDEBAR_BG = "#16213e"
+    BG = StyleManager.BG_DEFAULT
+    SIDEBAR_BG = StyleManager.PANEL_BG
 
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root: tk.Tk, theme: dict = None):
         self.root = root
         self.root.configure(bg=self.BG)
+        if theme is None:
+            from app.ui.theme import load_theme
+            theme = load_theme()
+        StyleManager.init_styles(root, theme)
         self._sidebar = None
         self._player_panel = None
         self._nav_buttons = {}
@@ -22,16 +28,16 @@ class MainWindow:
         self.root.columnconfigure(1, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-        self._sidebar = tk.Frame(self.root, bg=self.SIDEBAR_BG, width=200)
+        self._sidebar = ttk.Frame(self.root, style="Panel.TFrame", width=200)
         self._sidebar.grid(row=0, column=0, sticky="nsew")
         self._sidebar.grid_propagate(False)
 
         self._player_panel = PlayerPanel(self._sidebar, data={}, logger=None)
-        self._player_panel.pack(fill=tk.X)
+        self._player_panel.pack(fill=tk.X, padx=4, pady=4)
 
-        tk.Frame(self._sidebar, bg=self.BG, height=2).pack(fill=tk.X, pady=4)
+        ttk.Separator(self._sidebar, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=4)
 
-        self._content_frame = tk.Frame(self.root, bg=self.BG)
+        self._content_frame = ttk.Frame(self.root, style="TFrame")
         self._content_frame.grid(row=0, column=1, sticky="nsew", padx=4, pady=4)
         self._content_frame.rowconfigure(0, weight=1)
         self._content_frame.columnconfigure(0, weight=1)
@@ -41,29 +47,19 @@ class MainWindow:
             self._player_panel.update_data(data)
 
     def add_nav_button(self, view_key: str, label: str, command):
-        btn = tk.Button(
+        btn = ttk.Button(
             self._sidebar,
             text=label,
-            font=("Courier", 11),
-            bg=self.SIDEBAR_BG,
-            fg="#d4c9a8",
-            activebackground="#0f3460",
-            activeforeground="#ffffff",
-            relief=tk.FLAT,
-            anchor=tk.W,
-            padx=12,
-            pady=6,
-            cursor="hand2",
+            style="TButton",
             command=command,
         )
-        btn.pack(fill=tk.X)
+        btn.pack(fill=tk.X, padx=4, pady=2)
         self._nav_buttons[view_key] = btn
 
     def highlight_nav_button(self, view_key: str, active: bool):
         if view_key in self._nav_buttons:
-            self._nav_buttons[view_key].config(
-                bg="#0f3460" if active else self.SIDEBAR_BG
-            )
+            style = "Active.TButton" if active else "TButton"
+            self._nav_buttons[view_key].configure(style=style)
 
-    def get_content_frame(self) -> tk.Frame:
+    def get_content_frame(self) -> ttk.Frame:
         return self._content_frame

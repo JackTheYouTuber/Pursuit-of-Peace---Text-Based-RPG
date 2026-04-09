@@ -3,6 +3,7 @@ from typing import Dict, Any, Callable, Optional
 
 from app.ui.theme import load_theme
 from app.ui.view_registry import ViewRegistry
+from app.ui.style_manager import StyleManager
 
 class UIAssembler:
     def __init__(
@@ -18,6 +19,8 @@ class UIAssembler:
         self._layouts_dir = layouts_dir
         self._logger = logger
         self._theme = load_theme(theme_path, logger)
+        # Initialize ttk styles from the loaded theme
+        StyleManager.init_styles(root, self._theme)
         self._registry = ViewRegistry(root, callbacks, self._theme, layouts_dir, logger)
 
     def get_or_build_view(self, view_name: str, state: Dict) -> tk.Widget:
