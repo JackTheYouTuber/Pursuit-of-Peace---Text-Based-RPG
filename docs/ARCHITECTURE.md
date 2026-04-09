@@ -146,9 +146,19 @@ Player state is a plain Python `dict` held by `StateManager`. It is never mutate
 
 ## UI System
 
-The `UIAssembler` is a data-driven layout engine. Each view is described by a JSON file in `data/ui/layouts/`. The assembler reads the file, instantiates the correct widget class from its `_COMPONENT_REGISTRY`, applies theme colours from `data/ui/themes.json`, connects data bindings (dot-path expressions like `"location.description"`), and caches the resulting widget tree.
+The `UIAssembler` is a data‑driven layout engine. Each view is described by a JSON file in `data/ui/layouts/`. The assembler reads the file, instantiates the correct widget class from its component registry, applies theme colours from `data/ui/themes.json`, connects data bindings (dot‑path expressions like `"location.description"`), and caches the resulting widget tree.
 
-On refresh, the assembler re-evaluates all dot-path bindings against the fresh state dict and calls the appropriate widget update method (`set_content`, `set_items`, `update_data`, etc.).
+### Dynamic Theming
+
+All UI colours, fonts, and padding values are fetched **at runtime** from the active theme via `app.ui.constants`. The `constants` module uses a `__getattr__` delegator to a `_ThemeConstants` instance, which reads values from `StyleManager.get_theme()` on every access. This ensures that theme changes are applied immediately without restarting the game.
+
+**Example usage inside a component:**
+
+```
+import app.ui.constants as const
+
+label = tk.Label(self, bg=const.CARD_BG, fg=const.TEXT_FG, font=const.FONT_BODY)
+```
 
 ---
 

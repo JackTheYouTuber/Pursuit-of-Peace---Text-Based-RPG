@@ -150,3 +150,75 @@ A stray file with double `.py.py` extension existed in the component directory. 
 
 **Fix:**  
 Deleted the file.
+
+---
+
+### BUG-011 — Missing `def init_styles` in `StyleManager` (Critical)
+
+**File:** `app/ui/style_manager.py`  
+**Severity:** Critical — `AttributeError` on startup  
+
+**Description:**  
+The `init_styles` method was missing its `def` keyword, causing a syntax error that prevented the game from starting.
+
+**Fix:**  
+Added `def init_styles(cls, root: tk.Widget, theme_dict: Dict):` to the class.
+
+---
+
+### BUG-012 — Missing `const.` prefix in basic components (Critical)
+
+**Files:** `dialog_box.py`, `input_field.py`, `text_display.py`  
+**Severity:** Critical — `NameError` at runtime  
+
+**Description:**  
+After moving to a dynamic `constants` module, several basic components still referenced padding and colour constants without the `const.` prefix (e.g., `PAD_LARGE` instead of `const.PAD_LARGE`). This caused `NameError` when those components were instantiated.
+
+**Fix:**  
+- Changed all imports to `import app.ui.constants as const`.  
+- Replaced every bare constant with `const.` prefix (e.g., `const.PAD_LARGE`, `const.CARD_BG`).  
+- Added `FONT_BOLD` to the `constants` module.
+
+---
+
+### BUG-013 — `cget("background")` on `ttk.Frame` raises TclError (High)
+
+**Files:** `stat_bar.py`, `player_panel.py`, `combat_panel.py`, `inventory_panel.py`, `lore_panel.py`  
+**Severity:** High — UI fails to render with `_tkinter.TclError: unknown option "-background"`
+
+**Description:**  
+`ttk.Frame` does not support the `-background` option. Several panels and `StatBar` called `self.cget("background")` to get the background colour for `tk.Label` widgets, which raised a TclError and crashed the UI.
+
+**Fix:**  
+- Replaced all occurrences of `bg=self.cget("background")` with `bg=const.CARD_BG` (fetched dynamically from the theme).  
+- Updated `StatBar` to use `StyleManager.get_theme()` instead of the private `_theme` attribute.
+
+---
+
+### BUG-014 — Constants evaluated at module load time (Architectural)
+
+**File:** `app/ui/constants.py` (original version)  
+**Severity:** High — theme overrides never applied  
+
+**Description:**  
+The original `constants.py` computed all values at module load time, before `StyleManager.init_styles()` was called. As a result, every constant fell back to its hardcoded default, ignoring the loaded theme.
+
+**Fix:**  
+Completely rewrote `constants.py`:
+- Created an internal `_ThemeConstants` class with `@property` methods that call `StyleManager.get_theme()` each time.
+- Added module‑level `__getattr__` to delegate attribute access to an instance of that class.
+- Padding constants are also implemented as properties for consistency.  
+Now all UI components receive the correct themed values at runtime.
+
+---
+
+### BUG-015 — Missing `FONT_BOLD` import in `dialog_box.py`
+
+**File:** `app/ui/components/basic/dialog_box.py`  
+**Severity:** Medium — `NameError` when showing a dialog  
+
+**Description:**  
+`dialog_box.py` used `FONT_BOLD` but the import statement (after the dynamic constants change) did not include it.
+
+**Fix:**  
+Added `FONT_BOLD` to the list of imported names. With the dynamic `constants` module, the preferred fix was to use `const.FONT_BOLD` instead of a bare name; this was done as part of BUG-012.

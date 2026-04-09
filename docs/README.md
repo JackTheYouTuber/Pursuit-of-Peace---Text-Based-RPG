@@ -1,4 +1,4 @@
-# Pursuit of Peace — Text-Based RPG  `v0.7.3`
+# Pursuit of Peace — Text-Based RPG  `v0.7.5`
 
 A single-player, turn-based text RPG built with Python and Tkinter. You play as a citizen of a walled city who must survive year-to-year by managing gold, exploring dungeons, and paying taxes to avoid exile.
 
