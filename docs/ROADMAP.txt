@@ -1,3 +1,17 @@
+================================================================================
+v0.9.5 NOTE — TRINITY ARCHITECTURE
+================================================================================
+The codebase has been fully restructured. All future tier work builds on:
+  Data (loaders + managers + registry)
+  Logic (simple atomic ops → complex managers → core orchestrators)
+  UI (simple widgets → complex assembler/coordinator → core app + controllers)
+Each file has one job. Adding a new mechanic means:
+  1. Add a simple unit for any new atomic operation.
+  2. Add or extend a complex manager to coordinate it.
+  3. Register the action_id in router.py.
+  4. Engine routes it automatically. UI needs no changes.
+================================================================================
+
 PURSUIT OF PEACE — DEVELOPMENT ROADMAP
 =======================================
 
@@ -738,7 +752,7 @@ STATUS: ✓ COMPLETE (v0.9.4).
      - data/economy/prices.json (repair_per_durability_point)
 
 ================================================================================
-TIER 4 — SHOP ECONOMY [v1.0 — PARTIAL]
+TIER 4 — SHOP ECONOMY [v1.0 — PARTIAL / PENDING v0.9.5 REFACTOR]
 ================================================================================
 
 STATUS: ⚠ PARTIAL (v0.9.0). Foundation in place:

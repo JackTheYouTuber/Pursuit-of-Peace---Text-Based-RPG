@@ -68,3 +68,84 @@
 - **Durability bar** — inventory equipment summary now shows a `[████░░░░░░]` text bar. Bar character changes from `█` (healthy) → `▓` (worn) → `▒` (critical) based on percentage remaining.
 - **Player panel durability** — gear summary in sidebar now shows `+5⚔ [48/50]` so durability is visible without opening inventory.
 - **Dead stub actions removed** from marketplace, alchemy hall, and coliseum. Players no longer see buttons that crash. These locations will get real actions in Tier 4.
+
+---
+
+## v0.9.5 — Trinity Architecture Restructure
+
+### Philosophy
+
+The entire codebase has been reorganised around two principles: **Trinity** (UI / Logic / Data) and **Bureaucracy** (Core gives orders, Complex manages, Simple executes). Every file has one job. Cores do not validate. Managers do not render. Simples do not know context.
+
+### New directory structure
+
+```
+app/
+├── app.py                     The core of cores — wires the three pillars, nothing else
+├── data/
+│   ├── loaders/               One file per data type. Load and serve. Never decide.
+│   │   ├── item_loader.py     items.json — get by id, all, by source, by type
+│   │   ├── enemy_loader.py    enemies.json — get by id, all, at depth
+│   │   ├── lore_loader.py     lore/*.json — on-demand, cached per location
+│   │   └── config_loader.py   prices, services, locations, dungeon config, defaults
+│   ├── managers/              Coordinate loaders. Make I/O decisions.
+│   │   ├── profile_mgr.py     list, load, save, delete, create profiles
+│   │   ├── dungeon_gen.py     generate runs, navigate rooms, pick enemies/items
+│   │   └── location_mgr.py    answer "what actions does this location have?"
+│   └── init/
+│       ├── registry.py        DataRegistry — build once, pass everywhere
+│       ├── engine_factory.py  Wire DataRegistry → Engine
+│       └── profile_selector.py  Startup dialog
+├── logic/
+│   ├── simple/                Atomic. One job. Pure state-in, state-out. No messages.
+│   │   ├── heal_player.py     Add HP, cap at effective max
+│   │   ├── damage_player.py   Subtract HP, return dead flag
+│   │   ├── add_gold.py        Add gold
+│   │   ├── remove_gold.py     Subtract gold
+│   │   ├── add_item.py        Append item_id to inventory
+│   │   ├── remove_item.py     Remove first occurrence of item_id
+│   │   ├── equip_item.py      Move item from inventory to slot
+│   │   ├── unequip_item.py    Move item from slot to inventory
+│   │   ├── apply_buff.py      Push buff, replace same-id (no stacking by default)
+│   │   ├── remove_buff.py     Filter buff by id
+│   │   ├── tick_buffs.py      Decrement turn buffs, return expired labels
+│   │   ├── expire_run_buffs.py Remove all one_run buffs
+│   │   ├── decay_durability.py Subtract 1 durability from a slot, return broke flag
+│   │   ├── parse_effect.py    Turn "Restores 10 hp" into {"type":"heal","value":10}
+│   │   ├── set_location.py    Set current_location_id
+│   │   ├── increment_kills.py kills += 1
+│   │   └── set_year.py        Advance year, reset tax_paid
+│   ├── complex/               Managers. Validate orders. Coordinate simples.
+│   │   ├── buff_mgr.py        Stat queries + apply/tick/expire buff lifecycle
+│   │   ├── item_mgr.py        use, equip, unequip, repair, buy, sell
+│   │   ├── player_mgr.py      rest, bath, fish, pay_taxes, hear_rumors, year_rollover
+│   │   ├── combat_mgr.py      combat session, attack rounds, flee, loot awards
+│   │   └── dungeon_mgr.py     take_item, next_room, mark_cleared, room lore
+│   └── core/                  Orchestrators. Give orders. Report results. No rules.
+│       ├── engine.py          Routes action_id → manager → state update
+│       ├── state.py           Single source of truth (player + dungeon state)
+│       ├── year_clock.py      Action counter, fires rollover signal
+│       ├── router.py          Maps action_id strings to intent (no if/elif in engine)
+│       └── view_builder.py    Transforms game state → UI state dicts
+└── ui/
+    ├── core/
+    │   ├── app.py             (moved — now at app/app.py)
+    │   ├── window.py          Sidebar + content frame layout
+    │   ├── game_actions.py    Routes UI events → engine → coordinator
+    │   └── profile_actions.py Save/load/new/quit
+    ├── complex/
+    │   ├── assembler.py       Data-driven view builder (reads layout JSON)
+    │   └── coordinator.py     Switches and refreshes active views
+    └── simple/
+        ├── component_builder.py  Instantiates widget trees
+        ├── component_registry.py Maps type strings → widget classes
+        ├── data_binder.py        Binds state paths to widget update methods
+        ├── layout_loader.py      Reads layout JSON files
+        ├── view_registry.py      Caches built view widgets
+        ├── style_manager.py      ttk style application
+        ├── constants.py          Dynamic theme constants
+        ├── theme.py              Loads themes.json
+        ├── menu.py               Tkinter menubar
+        ├── profile_dialogs.py    Profile selection dialog
+        ├── basic/                Layer 1 widgets — zero project imports
+        └── panels/               Layer 2 panel widgets
