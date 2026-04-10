@@ -1,13 +1,51 @@
 # Pursuit of Peace — Changelog
 
-## v0.7.5 (2026-04-09)
+## v0.9.0 — Tier 2 & Tier 3 Complete
 
-### UI System Overhaul
+### Tier 1 Fixes (retroactive)
+- **Profile deletion on death** — player death now permanently deletes the save file via `ProfileManager.delete_profile()`. The old code only called `init_player()` leaving the file intact.
+- **Combat gold rewards** — defeating an enemy now awards scaled gold (`hp/4` to `hp/2` range, randomised) and increments the kill counter.
+- **Loot drops** — enemies have a 60% chance to drop one item from their `loot_table` on defeat. Item is added to inventory automatically with a log message.
+- **Kill counter** — `player_state["kills"]` is now tracked and displayed in the player panel.
 
-- **Dynamic theme constants** – `constants.py` now evaluates colours, fonts, and padding at runtime, so the loaded `themes.json` is actually respected.
-- **Fixed critical syntax error** in `StyleManager.init_styles` (missing `def` keyword).
-- **Corrected missing `const.` prefixes** in `dialog_box.py`, `input_field.py`, and `text_display.py`.
-- **Replaced invalid `cget("background")` calls** with `const.CARD_BG` in `StatBar` and all complex panels.
-- **Added `FONT_BOLD`** to the dynamic constants module.
+### Tier 2 — Consumable & Effect System
+- **EffectResolver** (`app/components/game_engine/effect_resolver.py`) — new module that parses item `effect` text strings and applies heal, damage-buff, and debuff-removal effects to player state.
+- **BuffSystem** (`app/components/game_engine/buff_system.py`) — new module managing active buffs. Supports three duration types:
+  - `turns` — decremented after each attack round, expires when 0.
+  - `one_run` — expires when the player exits the dungeon.
+  - `permanent` — never expires.
+- **Use button in inventory** — consumable items now show a **Use** button in the inventory panel. Item is consumed on use; effect is applied immediately.
+- **Use item mid-combat** — consumable items from inventory appear as action buttons in the combat panel. Using a potion in combat updates HP bars instantly without ending the combat round.
+- **Bath buff** — taking a bath at the Public Bath now grants the `Refreshed` buff: +5 max HP for the current dungeon run.
+- **Strength potion** — Muscle Draught grants `strength_boost` buff: +3 damage for 3 attack turns.
 
-All UI components now properly apply the user’s selected theme. The game no longer crashes due to TclError or NameError when building the main window.
+### Tier 3 — Equipment & Combat Progression
+- **Equipment slots** — `equipped_weapon` and `equipped_armor` added to `player_state` and `data/player/defaults.json`. Slots persist in profile saves.
+- **Equip / Unequip** — inventory panel shows **Equip** button for weapons and armor. Equipping moves item from inventory to slot; old item is returned to inventory. Unequip buttons shown for currently equipped items.
+- **`stat_bonus` and `durability` fields** added to all weapons and armors in `data/dungeon/items/items.json`.
+- **Combat damage scaling** — player attack damage = base roll (4–8) + weapon `damage` bonus + buff bonus. Enemy damage received = raw roll − armor `defense` bonus (minimum 1). Both shown clearly in the combat log.
+- **Durability decay** — weapon loses 1 durability per attack; armor loses 1 per hit received. At 0 the item breaks, is auto-unequipped, and a warning is shown.
+- **Blacksmith repair** — `repair_weapon` and `repair_armor` location actions added. Cost = `(max_durability − current_durability) × prices["repair_per_point"]`.
+- **Inventory panel redesign** — now shows:
+  - Equipment summary at top (current weapon/armor with durability and stat bonuses).
+  - Item list in the middle.
+  - Contextual action buttons (Use / Equip / Sell) beneath the list.
+- **Player panel** — now displays gear bonus summary (e.g. `+5⚔ +3🛡`) and total kill count.
+
+### Tier 4 (Groundwork)
+- `buy_item` and `sell_item` engine actions are fully wired (40% sell price). UI shop browsing (item lists per location) is the remaining step for full Tier 4 completion.
+
+### Data Changes
+- `data/player/defaults.json` — added `equipped_weapon`, `equipped_armor`, `kills`, `times_died`.
+- `data/dungeon/items/items.json` — all weapons and armors now include `stat_bonus` and `durability`.
+- `data/ui/layouts/inventory.json` — added `on_action: "inventory_action"` binding.
+
+---
+
+## v0.7.3
+- Year rollover trigger (ISSUE-008 / GAP-006).
+- Dungeon lore text populated (ISSUE-009 / GAP-011).
+
+## v0.7.0
+- Enemy counter-attack (ISSUE-001).
+- Player death detection (ISSUE-002).

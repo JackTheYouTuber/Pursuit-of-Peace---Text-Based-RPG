@@ -39,6 +39,7 @@ class ProfileActions:
             self._engine._state_mgr.update_player(state)
             self._engine._state_mgr.clear_dungeon()
             self._engine._combat_sys.clear_combat()
+            self._engine.set_current_profile(name)
             # Refresh UI
             self._coordinator.refresh_active_view()
             self._coordinator.show_view("city")
@@ -68,6 +69,7 @@ class ProfileActions:
             self._engine._state_mgr.update_player(state)
             self._engine._state_mgr.clear_dungeon()
             self._engine._combat_sys.clear_combat()
+            self._engine.set_current_profile(name)
             self._coordinator.refresh_active_view()
             self._coordinator.show_view("city")
             data = self._engine.get_player_panel_data()

@@ -5,10 +5,17 @@ Inspired by offline Discord RPG bots with addictive mechanics, designed for full
 Each tier represents a complete feature set with clear deliverables and version increments.
 
 ================================================================================
-TIER 1 — CORE SURVIVAL LOOP [v0.7 — COMPLETE]
+TIER 1 — CORE SURVIVAL LOOP [v0.8 — COMPLETE & FIXED]
 ================================================================================
 
-STATUS: Foundation complete. Players can lose, die, and face consequences.
+STATUS: ✓ COMPLETE. All gaps from the original v0.7 claim have been resolved.
+  - [1.1] ✓ Enemy counter-attack — implemented.
+  - [1.2] ✓ Player death — profile is now DELETED on death (not merely reset).
+  - [1.3] ✓ Year rollover & exile — implemented.
+  - [1.4] ✓ Dungeon lore text — populated.
+  - [GAP] ✓ Combat gold rewards — enemies now drop scaled gold on defeat.
+  - [GAP] ✓ Loot drops — 60% chance per enemy to drop item from loot_table.
+  - [GAP] ✓ Kill counter — tracked in player_state['kills'].
 
 [1.1] ✓ Enemy Counter-Attack in Combat  (DONE v0.7)                          (ISSUE-001)
      
@@ -183,10 +190,16 @@ STATUS: Foundation complete. Players can lose, die, and face consequences.
      - app/components/game_engine/view_builder.py (display lore in UI)
 
 ================================================================================
-TIER 2 — CONSUMABLE & EFFECT SYSTEM [v0.8]
+TIER 2 — CONSUMABLE & EFFECT SYSTEM [v0.8 — COMPLETE]
 ================================================================================
 
-STATUS: Items become usable. Inventory gains agency.
+STATUS: ✓ COMPLETE (v0.9.0).
+  - [2.1] ✓ Item Use / Consumable Effects — EffectResolver parses effect text;
+           Use button in inventory and mid-combat. Item consumed on use.
+  - [2.2] ✓ Buff / Debuff Application — BuffSystem tracks turn/one_run/permanent
+           buffs; damage_bonus, max_hp, defense_bonus mods applied in combat.
+  - [2.3] ✓ Buff Sources — Bath grants Refreshed (+5 max HP, one_run);
+           strength potions grant turn-based damage buff.
 
 [2.1] Item Use / Consumable Effects System
      
@@ -417,10 +430,18 @@ STATUS: Items become usable. Inventory gains agency.
      - data/economy/prices.json (bath_cost)
 
 ================================================================================
-TIER 3 — EQUIPMENT & COMBAT PROGRESSION [v0.9]
+TIER 3 — EQUIPMENT & COMBAT PROGRESSION [v0.9 — COMPLETE]
 ================================================================================
 
-STATUS: Combat gains depth. Equipment affects damage/defense.
+STATUS: ✓ COMPLETE (v0.9.0).
+  - [3.1] ✓ Equipment Slots — equipped_weapon / equipped_armor in player_state.
+           Equip/Unequip via inventory panel. Persisted in profile saves.
+  - [3.2] ✓ Combat Damage Scaling — weapon damage_bonus added to player attack;
+           armor defense reduces incoming damage (min 1). Shown in combat log.
+  - [3.3] ✓ Durability System — both weapon and armor degrade by 1 per hit.
+           Breaking auto-unequips and shows warning. Visual in inventory.
+  - [3.4] ✓ Blacksmith Repair — repair_weapon / repair_armor actions cost
+           (max_dur - current_dur) × repair_per_point gold.
 
 [3.1] Equipment Slots: Weapon & Armor
      
@@ -713,10 +734,15 @@ STATUS: Combat gains depth. Equipment affects damage/defense.
      - data/economy/prices.json (repair_per_durability_point)
 
 ================================================================================
-TIER 4 — SHOP ECONOMY [v1.0] — BASIC GAMEPLAY LOOP COMPLETE
+TIER 4 — SHOP ECONOMY [v1.0 — PARTIAL]
 ================================================================================
 
-STATUS: Full economy loop functional. Players earn gold, spend gold, maintain gear.
+STATUS: ⚠ PARTIAL (v0.9.0). Foundation in place:
+  - [4.2] ✓ Sell System — sell_item action returns 40% of item value.
+  - [4.1] ◻ Shop Inventory UI — buy_item engine action exists but shop
+           UI (browseable item lists per location) not yet built.
+  - [4.3] ◻ Loot Drop System — loot_table used on enemy defeat (60% chance)
+           but rarity weighting not yet implemented.
 This is the first "complete" version with all core loops in place.
 
 [4.1] Shop Inventory & Buy System

@@ -88,6 +88,10 @@ class DataBinder:
             on_select = desc.get("on_select")
             if on_select and on_select in callbacks:
                 widget._on_select = callbacks[on_select]
+        if comp_type == "InventoryPanel":
+            on_action = desc.get("on_action")
+            if on_action and on_action in callbacks:
+                widget._on_action = callbacks[on_action]
         elif comp_type in ("LocationPanel", "CombatPanel"):
             on_action = desc.get("on_action")
             if on_action and on_action in callbacks:
@@ -124,6 +128,10 @@ class DataBinder:
                 widget.update_items(cls.get_nested(state, items_src, []))
             if detail_src:
                 widget.update_detail(cls.get_nested(state, detail_src, ""))
+            # Refresh action buttons (Use/Equip/Sell)
+            actions = cls.get_nested(state, "inventory.item_actions", [])
+            if hasattr(widget, "update_actions"):
+                widget.update_actions(actions)
         elif comp_type == "LorePanel":
             entries_src = bindings.get("entries_source")
             if entries_src:

@@ -6,5 +6,9 @@
   "inventory": [],
   "year": 1,
   "tax_paid": false,
-  "buffs": []
+  "buffs": [],
+  "equipped_weapon": null,
+  "equipped_armor": null,
+  "kills": 0,
+  "times_died": 0
 }

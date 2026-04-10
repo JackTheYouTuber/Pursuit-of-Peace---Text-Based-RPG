@@ -41,7 +41,7 @@ class App:
         self._loader = DataLoader(logger=self._logger)
         self._profile_mgr = ProfileManager(logger=self._logger)
 
-        # ----- Profile selection (blocks) -----
+        # ----- Profile selection (blocks until chosen) -----
         profile_name, profile_state = ProfileSelector.select_or_create(
             self._root, self._profile_mgr, self._loader, self._logger
         )
@@ -53,11 +53,15 @@ class App:
         # ----- UI layout (sidebar + content) -----
         self._window = MainWindow(self._root)
 
-        # ----- Game engine with loaded profile -----
-        self._engine = EngineFactory.create(profile_state, self._loader, self._logger)
+        # ----- Game engine with loaded profile + profile manager for death deletion -----
+        self._engine = EngineFactory.create(
+            profile_state, self._loader,
+            profile_manager=self._profile_mgr,
+            profile_name=self._profile_name,
+            logger=self._logger,
+        )
 
         # ----- UI Assembler & Coordinator -----
-        # Start with empty callbacks; will be filled after GameActions creation
         self._assembler = UIAssembler(
             root=self._window.get_content_frame(),
             callbacks={},
@@ -90,19 +94,20 @@ class App:
         )
         self._profile_actions.set_current_profile(self._profile_name)
 
-        # ----- Connect callbacks to assembler (update in place) -----
+        # ----- Connect callbacks to assembler -----
         self._assembler._callbacks.update({
             "location_action": self._game_actions.on_location_action,
-            "dungeon_action": self._game_actions.on_dungeon_action,
-            "combat_action": self._game_actions.on_combat_action,
+            "dungeon_action":  self._game_actions.on_dungeon_action,
+            "combat_action":   self._game_actions.on_combat_action,
             "inventory_select": self._game_actions.on_inventory_select,
+            "inventory_action": self._game_actions.on_inventory_action,
         })
 
         # ----- Navigation buttons -----
         nav_buttons = [
-            ("city", "  Explore"),
+            ("city",      "  Explore"),
             ("inventory", "  Inventory"),
-            ("lore", "  Lore"),
+            ("lore",      "  Lore"),
         ]
         for view_key, label in nav_buttons:
             self._window.add_nav_button(
@@ -114,10 +119,10 @@ class App:
         self._menu = GameMenu(
             self._root,
             callbacks={
-                "new_game": self._profile_actions.new_game,
+                "new_game":  self._profile_actions.new_game,
                 "save_game": self._profile_actions.save_game,
                 "load_game": self._profile_actions.load_game,
-                "quit": self._profile_actions.quit_app,
+                "quit":      self._profile_actions.quit_app,
             }
         )
 
@@ -128,11 +133,7 @@ class App:
         if self._logger:
             self._logger.system("App initialised.")
 
-    # ------------------------------------------------------------------
-    # Internal view switching (used by nav buttons)
-    # ------------------------------------------------------------------
     def _show_view(self, view_name: str):
-        """Switch to the given view and update navigation button highlights."""
         if view_name not in ("city", "dungeon", "combat", "inventory", "lore"):
             return
         self._coordinator.show_view(view_name)
@@ -140,5 +141,4 @@ class App:
             self._window.highlight_nav_button(key, key == view_name)
 
     def run(self):
-        """Start the Tkinter main event loop."""
         self._root.mainloop()

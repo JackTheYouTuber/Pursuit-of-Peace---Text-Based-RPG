@@ -1,4 +1,4 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import ttk
 from app.ui.style_manager import StyleManager
 from app.ui.components.complex.player_panel import PlayerPanel

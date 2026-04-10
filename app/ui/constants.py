@@ -1,4 +1,4 @@
-﻿"""
+"""
 Dynamic theme constants – always fetch from StyleManager at runtime.
 Usage: import app.ui.constants as const
        bg = const.CARD_BG

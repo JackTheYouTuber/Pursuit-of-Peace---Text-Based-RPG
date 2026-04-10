@@ -1,6 +1,7 @@
 # app/components/game_engine/view_builder.py
 from typing import Dict, List, Optional
 
+
 class ViewBuilder:
     """Construct UI state dictionaries for different views."""
 
@@ -41,65 +42,166 @@ class ViewBuilder:
                 items.append({"id": item_id, "label": item.get("name", item_id)})
             except ValueError:
                 items.append({"id": item_id, "label": item_id})
-        return {"inventory": {"items": items, "detail": detail}}
+
+        # Equipment slots summary
+        equipped_lines = []
+        ew = player_state.get("equipped_weapon")
+        ea = player_state.get("equipped_armor")
+        if ew:
+            item = ew.get("item", {})
+            dur = f"{ew.get('current_durability', 0)}/{ew.get('max_durability', 0)}"
+            dmg = item.get("stat_bonus", {}).get("damage", 0)
+            equipped_lines.append(f"Weapon: {item.get('name','?')} (+{dmg} dmg) [{dur}]")
+        else:
+            equipped_lines.append("Weapon: — (unarmed)")
+        if ea:
+            item = ea.get("item", {})
+            dur = f"{ea.get('current_durability', 0)}/{ea.get('max_durability', 0)}"
+            dfn = item.get("stat_bonus", {}).get("defense", 0)
+            equipped_lines.append(f"Armor: {item.get('name','?')} (+{dfn} def) [{dur}]")
+        else:
+            equipped_lines.append("Armor: — (no armor)")
+
+        # Unequip actions only shown in detail pane when item is selected
+        equipment_actions = []
+        if ew:
+            equipment_actions.append({
+                "id": "unequip:equipped_weapon",
+                "label": f"Unequip {ew.get('item', {}).get('name', 'weapon')}"
+            })
+        if ea:
+            equipment_actions.append({
+                "id": "unequip:equipped_armor",
+                "label": f"Unequip {ea.get('item', {}).get('name', 'armor')}"
+            })
+
+        return {
+            "inventory": {
+                "items": items,
+                "detail": "\n".join(equipped_lines) + ("\n\n" + detail if detail else ""),
+                "item_actions": equipment_actions,
+            }
+        }
 
     def build_lore_state(self) -> Dict:
         return {"lore": {"entries": self._loader.get_lore("global")}}
 
-    def build_combat_state(self, combat_state: Dict) -> Dict:
+    def build_combat_state(self, combat_state: Dict,
+                           player_state: Optional[Dict] = None) -> Dict:
         enemy = combat_state["enemy"]
+
+        # Build action list including consumables if player has any
+        actions = [
+            {"id": "attack", "label": "⚔ Attack"},
+            {"id": "flee",   "label": "🏃 Flee"},
+        ]
+        if player_state:
+            for item_id in player_state.get("inventory", []):
+                try:
+                    item = self._loader.get_item(item_id)
+                    if item.get("type") == "consumable":
+                        actions.append({
+                            "id": f"use_item:{item_id}",
+                            "label": f"Use: {item.get('name', item_id)}"
+                        })
+                except ValueError:
+                    pass
+
+        # Equipment summary for display
+        equip_summary = ""
+        if player_state:
+            ew = player_state.get("equipped_weapon")
+            ea = player_state.get("equipped_armor")
+            parts = []
+            if ew:
+                dmg = ew.get("item", {}).get("stat_bonus", {}).get("damage", 0)
+                dur = ew.get("current_durability", 0)
+                parts.append(f"⚔ +{dmg}dmg ({dur} dur)")
+            if ea:
+                dfn = ea.get("item", {}).get("stat_bonus", {}).get("defense", 0)
+                dur = ea.get("current_durability", 0)
+                parts.append(f"🛡 +{dfn}def ({dur} dur)")
+            if parts:
+                equip_summary = "  ".join(parts)
+
+        log = combat_state.get("log_text", "")
+        if equip_summary:
+            log = equip_summary + "\n" + "─" * 30 + "\n" + log
+
         return {
             "combat": {
-                "log": combat_state.get("log_text", ""),
+                "log": log,
                 "enemy_name": enemy.get("name", "Enemy"),
                 "enemy_hp": combat_state.get("enemy_current_hp", 0),
                 "player_hp": combat_state.get("player_current_hp", 0),
                 "player_max_hp": combat_state.get("player_max_hp", 20),
-                "actions": [
-                    {"id": "attack", "label": "Attack"},
-                    {"id": "flee", "label": "Flee"},
-                ],
+                "actions": actions,
             }
         }
 
     def build_player_panel_data(self, player_state: Dict) -> Dict:
+        # Effective max_hp includes buff bonuses
+        from app.components.game_engine.buff_system import BuffSystem
+        buff_sys = BuffSystem()
+        max_hp_bonus = buff_sys.get_max_hp_bonus(player_state)
+
+        # Equipment summary
+        ew = player_state.get("equipped_weapon")
+        ea = player_state.get("equipped_armor")
+        equip_parts = []
+        if ew:
+            dmg = ew.get("item", {}).get("stat_bonus", {}).get("damage", 0)
+            equip_parts.append(f"+{dmg}⚔")
+        if ea:
+            dfn = ea.get("item", {}).get("stat_bonus", {}).get("defense", 0)
+            equip_parts.append(f"+{dfn}🛡")
+        equip_label = "  ".join(equip_parts) if equip_parts else "—"
+
         return {
             "hp": player_state.get("hp", 20),
-            "max_hp": player_state.get("max_hp", 20),
+            "max_hp": player_state.get("max_hp", 20) + max_hp_bonus,
             "gold": player_state.get("gold", 50),
             "level": player_state.get("level", 1),
+            "equipment": equip_label,
+            "kills": player_state.get("kills", 0),
         }
 
-    # ---------- internal helpers ----------
+    # ── internal helpers ──────────────────────────────────────────────
+
     def _get_location_description(self, location_id: str) -> str:
         entries = self._loader.get_lore(location_id)
-        descriptions = [e for e in entries if e.get("type") == "description"]
-        if descriptions:
-            return descriptions[0].get("text", "")
-        ambient = [e for e in entries if e.get("type") == "ambient"]
-        if ambient:
-            return ambient[0].get("text", "")
+        for kind in ("description", "ambient"):
+            matches = [e for e in entries if e.get("type") == kind]
+            if matches:
+                return matches[0].get("text", "")
         return ""
 
     def _build_action_list(self, location_id: str) -> List[Dict]:
         action_ids = self._location_mgr.get_location_actions(location_id)
         return [{"id": aid, "label": self._action_label(aid)} for aid in action_ids]
 
-    def _build_dungeon_actions(self, room: Dict, dungeon_state: Dict, idx: int, total: int) -> List[Dict]:
+    def _build_dungeon_actions(self, room: Dict, dungeon_state: Dict,
+                               idx: int, total: int) -> List[Dict]:
         actions = []
         if room.get("has_enemy") and not room.get("cleared"):
             enemy = room.get("enemy")
             if enemy:
-                actions.append({"id": "enter_combat", "label": f"Fight: {enemy.get('name', 'Unknown')}"})
+                actions.append({
+                    "id": "enter_combat",
+                    "label": f"Fight: {enemy.get('name', 'Unknown')}"
+                })
         if room.get("has_item") and not room.get("cleared"):
             item = room.get("item")
             if item:
-                actions.append({"id": "take_item", "label": f"Take: {item.get('name', 'Item')}"})
+                actions.append({
+                    "id": "take_item",
+                    "label": f"Take: {item.get('name', 'Item')}"
+                })
         if room.get("cleared") or (not room.get("has_enemy") and not room.get("has_item")):
             if idx < total:
                 actions.append({"id": "next_room", "label": "Press deeper"})
             else:
-                actions.append({"id": "dungeon_exit", "label": "Ascend -- leave the dungeon"})
+                actions.append({"id": "dungeon_exit", "label": "Ascend — leave the dungeon"})
         actions.append({"id": "flee_dungeon", "label": "Flee the dungeon"})
         return actions
 
@@ -113,23 +215,25 @@ class ViewBuilder:
             "buy_potion": "Potion",
             "sell_reagent": "Reagent",
             "craft_consumable": "Craft",
-            "buy_weapon": "Weapon",
-            "buy_armor": "Armor",
+            "buy_weapon": "Buy Weapon",
+            "buy_armor": "Buy Armor",
             "repair_equipment": "Repair",
-            "pay_taxes": "Taxes",
-            "view_debt": "Debt",
+            "repair_weapon": "Repair Weapon",
+            "repair_armor": "Repair Armor",
+            "pay_taxes": "Pay Taxes",
+            "view_debt": "View Debt",
             "enter_combat_event": "Arena",
             "watch_combat_event": "Watch",
             "place_wager": "Wager",
             "take_bath": "Bath",
             "go_fishing": "Fish",
-            "enter_dungeon": "Dungeon",
-            "go_city": "City",
+            "enter_dungeon": "Enter Dungeon",
+            "go_city": "← City",
             "go_tavern": "Tavern",
             "go_marketplace": "Market",
             "go_alchemy_hall": "Alchemy",
             "go_blacksmiths_street": "Smithy",
-            "go_city_hall": "Hall",
+            "go_city_hall": "City Hall",
             "go_coliseum": "Coliseum",
             "go_public_bath": "Bathhouse",
             "go_the_river": "River",

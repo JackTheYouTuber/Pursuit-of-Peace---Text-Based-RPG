@@ -1,4 +1,4 @@
-﻿"""Central style management for ttk widgets – configured from theme dict."""
+"""Central style management for ttk widgets – configured from theme dict."""
 import tkinter as tk
 from tkinter import ttk
 from typing import Dict
