@@ -7,6 +7,10 @@
     "hp": 10,
     "damage_min": 1,
     "damage_max": 3,
+    "gold_min": 2,
+    "gold_max": 5,
+    "loot_chance": 0.55,
+    "loot_count": 1,
     "loot_table": ["item_bone_shard_01", "item_tattered_cloth_01"]
   },
   {
@@ -17,6 +21,10 @@
     "hp": 12,
     "damage_min": 2,
     "damage_max": 5,
+    "gold_min": 3,
+    "gold_max": 6,
+    "loot_chance": 0.50,
+    "loot_count": 1,
     "loot_table": ["item_bone_shard_01"]
   },
   {
@@ -27,6 +35,10 @@
     "hp": 8,
     "damage_min": 2,
     "damage_max": 4,
+    "gold_min": 2,
+    "gold_max": 5,
+    "loot_chance": 0.60,
+    "loot_count": 1,
     "loot_table": ["item_tattered_cloth_01", "item_bandage_01"]
   },
   {
@@ -37,6 +49,10 @@
     "hp": 18,
     "damage_min": 3,
     "damage_max": 6,
+    "gold_min": 5,
+    "gold_max": 10,
+    "loot_chance": 0.60,
+    "loot_count": 1,
     "loot_table": ["item_bone_shard_01", "item_crude_knife_01"]
   },
   {
@@ -47,6 +63,10 @@
     "hp": 22,
     "damage_min": 4,
     "damage_max": 8,
+    "gold_min": 8,
+    "gold_max": 14,
+    "loot_chance": 0.65,
+    "loot_count": 1,
     "loot_table": ["item_tattered_cloth_01", "item_potion_health_01"]
   },
   {
@@ -57,6 +77,10 @@
     "hp": 20,
     "damage_min": 5,
     "damage_max": 9,
+    "gold_min": 7,
+    "gold_max": 13,
+    "loot_chance": 0.65,
+    "loot_count": 1,
     "loot_table": ["item_reagent_sulfur_01", "item_antidote_01"]
   },
   {
@@ -67,6 +91,10 @@
     "hp": 25,
     "damage_min": 4,
     "damage_max": 7,
+    "gold_min": 9,
+    "gold_max": 16,
+    "loot_chance": 0.65,
+    "loot_count": 1,
     "loot_table": ["item_reagent_root_01", "item_bone_shard_01"]
   },
   {
@@ -77,6 +105,10 @@
     "hp": 28,
     "damage_min": 6,
     "damage_max": 11,
+    "gold_min": 10,
+    "gold_max": 18,
+    "loot_chance": 0.65,
+    "loot_count": 1,
     "loot_table": ["item_tattered_cloth_01", "item_strange_residue_01"]
   },
   {
@@ -87,6 +119,10 @@
     "hp": 35,
     "damage_min": 8,
     "damage_max": 13,
+    "gold_min": 14,
+    "gold_max": 24,
+    "loot_chance": 0.70,
+    "loot_count": 1,
     "loot_table": ["item_iron_bar_01", "item_potion_health_02"]
   },
   {
@@ -97,6 +133,10 @@
     "hp": 40,
     "damage_min": 9,
     "damage_max": 15,
+    "gold_min": 16,
+    "gold_max": 28,
+    "loot_chance": 0.70,
+    "loot_count": 2,
     "loot_table": ["item_strange_residue_01", "item_bone_shard_01", "item_antidote_01"]
   },
   {
@@ -107,6 +147,10 @@
     "hp": 48,
     "damage_min": 11,
     "damage_max": 17,
+    "gold_min": 20,
+    "gold_max": 35,
+    "loot_chance": 0.70,
+    "loot_count": 1,
     "loot_table": ["item_armor_bone_plate_01", "item_potion_health_02"]
   },
   {
@@ -117,6 +161,10 @@
     "hp": 65,
     "damage_min": 14,
     "damage_max": 22,
+    "gold_min": 28,
+    "gold_max": 50,
+    "loot_chance": 0.75,
+    "loot_count": 2,
     "loot_table": ["item_iron_bar_01", "item_strange_residue_01", "item_potion_health_02"]
   }
 ]

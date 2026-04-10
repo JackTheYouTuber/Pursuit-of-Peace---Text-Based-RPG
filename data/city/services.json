@@ -7,19 +7,20 @@
     "rest_cost": 10
   },
   "marketplace": {
-    "actions": ["buy_item", "sell_item", "go_city"]
+    "actions": ["sell_item", "go_city"]
   },
   "alchemy_hall": {
-    "actions": ["buy_potion", "sell_reagent", "craft_consumable", "go_city"]
+    "actions": ["sell_item", "go_city"]
   },
   "blacksmiths_street": {
-    "actions": ["buy_weapon", "buy_armor", "repair_equipment", "go_city"]
+    "actions": ["repair_weapon", "repair_armor", "go_city"],
+    "repair_per_point": 5
   },
   "city_hall": {
     "actions": ["pay_taxes", "view_debt", "go_city"]
   },
   "coliseum": {
-    "actions": ["enter_combat_event", "watch_combat_event", "place_wager", "go_city"]
+    "actions": ["go_city"]
   },
   "public_bath": {
     "actions": ["take_bath", "go_city"],

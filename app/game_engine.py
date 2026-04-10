@@ -333,35 +333,47 @@ class GameEngine:
         return False, "Invalid combat action.", False, False
 
     def _award_combat_rewards(self, enemy: Dict) -> Tuple[str, str]:
-        """Award gold and loot after defeating an enemy. Returns (gold_msg, loot_msg)."""
+        """Award gold and loot after defeating an enemy. Returns (gold_msg, loot_msg).
+
+        Gold uses enemy gold_min/gold_max fields; falls back to hp-derived estimate.
+        Loot uses enemy loot_chance/loot_count fields; falls back to 60% / 1.
+        """
         player = self._state_mgr.get_player()
         player_copy = dict(player)
 
         # Increment kill counter
         player_copy["kills"] = player_copy.get("kills", 0) + 1
 
-        # Gold reward (based on enemy max HP as a proxy for power)
-        enemy_max_hp = enemy.get("hp", 10)
-        gold_earned = random.randint(
-            max(1, enemy_max_hp // 4),
-            max(2, enemy_max_hp // 2)
-        )
+        # Gold reward — data-driven
+        gold_min = enemy.get("gold_min")
+        gold_max = enemy.get("gold_max")
+        if gold_min is None or gold_max is None:
+            # Fallback: derive from HP
+            hp = enemy.get("hp", 10)
+            gold_min = max(1, hp // 4)
+            gold_max = max(2, hp // 2)
+        gold_earned = random.randint(int(gold_min), int(gold_max))
         player_copy["gold"] = player_copy.get("gold", 0) + gold_earned
         gold_msg = f"You loot {gold_earned}g from the body."
 
-        # Loot drop
+        # Loot drop — data-driven
         loot_table = enemy.get("loot_table", [])
-        loot_msg = ""
-        if loot_table and random.random() < 0.6:
-            item_id = random.choice(loot_table)
-            try:
-                item = self._loader.get_item(item_id)
-                inventory = list(player_copy.get("inventory", []))
-                inventory.append(item_id)
-                player_copy["inventory"] = inventory
-                loot_msg = f"Dropped: {item.get('name', item_id)}."
-            except ValueError:
-                pass
+        loot_chance = enemy.get("loot_chance", 0.60)
+        loot_count = enemy.get("loot_count", 1)
+        loot_names = []
+        if loot_table and random.random() < loot_chance:
+            inventory = list(player_copy.get("inventory", []))
+            for _ in range(int(loot_count)):
+                item_id = random.choice(loot_table)
+                try:
+                    item = self._loader.get_item(item_id)
+                    inventory.append(item_id)
+                    loot_names.append(item.get("name", item_id))
+                except ValueError:
+                    pass
+            player_copy["inventory"] = inventory
+
+        loot_msg = f"Dropped: {', '.join(loot_names)}." if loot_names else ""
 
         self._state_mgr.update_player(player_copy)
         return gold_msg, loot_msg

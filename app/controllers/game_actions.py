@@ -117,11 +117,14 @@ class GameActions:
             item_type = item.get("type", "misc")
             name = item.get("name", item_id)
 
-            # Build detail text
+            prices = self._loader.get_prices()
+            multiplier = prices.get("sell_price_multiplier", 0.4)
+            sell_price = max(1, int(item.get("value", 0) * multiplier))
+
             detail = (
                 f"{name}\n"
                 f"Type: {item_type.capitalize()}\n"
-                f"Value: {item.get('value', 0)}g"
+                f"Value: {item.get('value', 0)}g  (sells for {sell_price}g)"
             )
             if item.get("effect"):
                 detail += f"\nEffect: {item['effect']}"
@@ -130,16 +133,14 @@ class GameActions:
                 bonus_parts = [f"+{v} {k}" for k, v in stat_bonus.items()]
                 detail += f"\nStats: {', '.join(bonus_parts)}"
             if item.get("durability"):
-                detail += f"\nDurability: {item['durability']}"
+                detail += f"\nBase durability: {item['durability']}"
 
-            # Build action buttons for this item
-            player = self._engine.player_state
             actions = []
             if item_type == "consumable":
                 actions.append({"id": f"use_item:{item_id}", "label": f"Use {name}"})
             elif item_type in ("weapon", "armor"):
                 actions.append({"id": f"equip_item:{item_id}", "label": f"Equip {name}"})
-            actions.append({"id": f"sell_item:{item_id}", "label": f"Sell ({max(1, int(item.get('value',0)*0.4))}g)"})
+            actions.append({"id": f"sell_item:{item_id}", "label": f"Sell ({sell_price}g)"})
 
         except ValueError:
             detail = f"Unknown item: {item_id}"

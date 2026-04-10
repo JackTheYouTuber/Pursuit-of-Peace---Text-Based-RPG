@@ -261,7 +261,7 @@ class LocationActions:
         return state, f"Purchased {item.get('name', item_id)} for {price}g."
 
     def sell_item(self, player_state: Dict, item_id: str) -> Tuple[Dict, str]:
-        """Sell an item from inventory for 40% of its value."""
+        """Sell an item from inventory. Sell price = value × sell_price_multiplier (default 40%)."""
         state = dict(player_state)
         inventory = list(state.get("inventory", []))
         if item_id not in inventory:
@@ -275,7 +275,8 @@ class LocationActions:
             item = self._loader.get_item(item_id)
         except ValueError:
             return state, f"Unknown item: {item_id}"
-        sell_price = max(1, int(item.get("value", 0) * 0.4))
+        multiplier = self._prices.get("sell_price_multiplier", 0.4)
+        sell_price = max(1, int(item.get("value", 0) * multiplier))
         inventory.remove(item_id)
         state["inventory"] = inventory
         state["gold"] = state.get("gold", 0) + sell_price

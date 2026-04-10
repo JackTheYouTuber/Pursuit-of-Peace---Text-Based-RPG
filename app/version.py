@@ -4,10 +4,22 @@ Central version definition for Pursuit of Peace.
 Bump this file when cutting a release.
 """
 
-VERSION = "0.9.0"
+VERSION = "0.9.4"
 VERSION_LABEL = f"v{VERSION}"
 
 CHANGELOG = {
+    "0.9.4": [
+        "Tier 1 complete: enemies.json now fully data-driven with gold_min/gold_max, "
+        "loot_chance, and loot_count per enemy. Fallback logic removed.",
+        "Tier 2 complete: active buffs and debuffs now displayed in the player panel sidebar.",
+        "Tier 2 complete: sell_price_multiplier moved to prices.json (was hardcoded 0.4).",
+        "Tier 3 complete: repair_equipment action name mismatch fixed — engine and "
+        "services.json now both use repair_weapon / repair_armor.",
+        "Tier 3 complete: durability shown as visual bar [████░░░░] in inventory panel.",
+        "Tier 3 complete: equipment summary in player panel sidebar now shows durability.",
+        "Removed dead stub actions from marketplace, alchemy_hall, and coliseum "
+        "so players no longer see broken buttons.",
+    ],
     "0.9.0": [
         "Tier 3 complete: weapon/armor equipment slots, combat damage scaling, "
         "durability decay, blacksmith repair.",

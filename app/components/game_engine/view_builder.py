@@ -43,26 +43,29 @@ class ViewBuilder:
             except ValueError:
                 items.append({"id": item_id, "label": item_id})
 
-        # Equipment slots summary
+        # Equipment slots summary with durability bar
         equipped_lines = []
         ew = player_state.get("equipped_weapon")
         ea = player_state.get("equipped_armor")
         if ew:
             item = ew.get("item", {})
-            dur = f"{ew.get('current_durability', 0)}/{ew.get('max_durability', 0)}"
+            cur = ew.get("current_durability", 0)
+            mx = ew.get("max_durability", 1)
             dmg = item.get("stat_bonus", {}).get("damage", 0)
-            equipped_lines.append(f"Weapon: {item.get('name','?')} (+{dmg} dmg) [{dur}]")
+            bar = self._durability_bar(cur, mx)
+            equipped_lines.append(f"⚔ {item.get('name','?')}  +{dmg} dmg\n  {bar} {cur}/{mx}")
         else:
-            equipped_lines.append("Weapon: — (unarmed)")
+            equipped_lines.append("⚔ Weapon: — (unarmed)")
         if ea:
             item = ea.get("item", {})
-            dur = f"{ea.get('current_durability', 0)}/{ea.get('max_durability', 0)}"
+            cur = ea.get("current_durability", 0)
+            mx = ea.get("max_durability", 1)
             dfn = item.get("stat_bonus", {}).get("defense", 0)
-            equipped_lines.append(f"Armor: {item.get('name','?')} (+{dfn} def) [{dur}]")
+            bar = self._durability_bar(cur, mx)
+            equipped_lines.append(f"🛡 {item.get('name','?')}  +{dfn} def\n  {bar} {cur}/{mx}")
         else:
-            equipped_lines.append("Armor: — (no armor)")
+            equipped_lines.append("🛡 Armor:  — (no armor)")
 
-        # Unequip actions only shown in detail pane when item is selected
         equipment_actions = []
         if ew:
             equipment_actions.append({
@@ -82,6 +85,23 @@ class ViewBuilder:
                 "item_actions": equipment_actions,
             }
         }
+
+    @staticmethod
+    def _durability_bar(current: int, maximum: int, width: int = 10) -> str:
+        """Return a text durability bar like [████░░░░░░] 4/10."""
+        if maximum <= 0:
+            return "[" + "░" * width + "]"
+        filled = round(width * current / maximum)
+        filled = max(0, min(width, filled))
+        empty = width - filled
+        pct = current / maximum
+        if pct > 0.5:
+            char = "█"
+        elif pct > 0.2:
+            char = "▓"
+        else:
+            char = "▒"
+        return "[" + char * filled + "░" * empty + "]"
 
     def build_lore_state(self) -> Dict:
         return {"lore": {"entries": self._loader.get_lore("global")}}
@@ -140,21 +160,24 @@ class ViewBuilder:
         }
 
     def build_player_panel_data(self, player_state: Dict) -> Dict:
-        # Effective max_hp includes buff bonuses
         from app.components.game_engine.buff_system import BuffSystem
         buff_sys = BuffSystem()
         max_hp_bonus = buff_sys.get_max_hp_bonus(player_state)
+        buff_summary = buff_sys.get_buff_summary(player_state)
 
-        # Equipment summary
         ew = player_state.get("equipped_weapon")
         ea = player_state.get("equipped_armor")
         equip_parts = []
         if ew:
             dmg = ew.get("item", {}).get("stat_bonus", {}).get("damage", 0)
-            equip_parts.append(f"+{dmg}⚔")
+            dur = ew.get("current_durability", 0)
+            max_dur = ew.get("max_durability", 1)
+            equip_parts.append(f"+{dmg}⚔ [{dur}/{max_dur}]")
         if ea:
             dfn = ea.get("item", {}).get("stat_bonus", {}).get("defense", 0)
-            equip_parts.append(f"+{dfn}🛡")
+            dur = ea.get("current_durability", 0)
+            max_dur = ea.get("max_durability", 1)
+            equip_parts.append(f"+{dfn}🛡 [{dur}/{max_dur}]")
         equip_label = "  ".join(equip_parts) if equip_parts else "—"
 
         return {
@@ -164,6 +187,7 @@ class ViewBuilder:
             "level": player_state.get("level", 1),
             "equipment": equip_label,
             "kills": player_state.get("kills", 0),
+            "buffs": "" if buff_summary == "No active effects." else buff_summary,
         }
 
     # ── internal helpers ──────────────────────────────────────────────
@@ -210,21 +234,11 @@ class ViewBuilder:
         labels = {
             "rest": "Rest",
             "hear_rumors": "Rumors",
-            "buy_item": "Buy",
-            "sell_item": "Sell",
-            "buy_potion": "Potion",
-            "sell_reagent": "Reagent",
-            "craft_consumable": "Craft",
-            "buy_weapon": "Buy Weapon",
-            "buy_armor": "Buy Armor",
-            "repair_equipment": "Repair",
+            "sell_item": "Sell Item",
             "repair_weapon": "Repair Weapon",
             "repair_armor": "Repair Armor",
             "pay_taxes": "Pay Taxes",
             "view_debt": "View Debt",
-            "enter_combat_event": "Arena",
-            "watch_combat_event": "Watch",
-            "place_wager": "Wager",
             "take_bath": "Bath",
             "go_fishing": "Fish",
             "enter_dungeon": "Enter Dungeon",

@@ -49,3 +49,22 @@
 ## v0.7.0
 - Enemy counter-attack (ISSUE-001).
 - Player death detection (ISSUE-002).
+
+---
+
+## v0.9.4 — Tier 1, 2 & 3 Gap Closure
+
+### Tier 1 — Data-Driven Loot & Gold
+- **`enemies.json`** — all 12 enemies now have `gold_min`, `gold_max`, `loot_chance`, and `loot_count` fields. The engine reads these directly; hardcoded fallback values are gone.
+- Gold rewards are now properly scaled per enemy tier (e.g. Bloated Rat drops 2–5g; Deep-Born Thing drops 28–50g).
+- Loot drop probability ranges from 50–75% by enemy, with `loot_count: 2` for stronger enemies.
+
+### Tier 2 — Buff Visibility & Data-Driven Sell Price
+- **Active buffs now shown in the player panel sidebar.** The "Effects:" row appears only when a buff is active, listing each effect and its remaining duration (e.g. `Strength +3 (2 turns), Refreshed (until exit)`). The row hides when no effects are active.
+- **`sell_price_multiplier`** moved from hardcoded `0.4` in Python to `data/economy/prices.json`. Inventory "Sell" button and sell confirmation both read the live value.
+
+### Tier 3 — Repair Mismatch & Durability Bar
+- **`repair_equipment` name mismatch fixed.** `services.json` blacksmith now lists `repair_weapon` and `repair_armor` — the same names the engine handles. The old broken `repair_equipment`, `buy_weapon`, `buy_armor` stubs removed.
+- **Durability bar** — inventory equipment summary now shows a `[████░░░░░░]` text bar. Bar character changes from `█` (healthy) → `▓` (worn) → `▒` (critical) based on percentage remaining.
+- **Player panel durability** — gear summary in sidebar now shows `+5⚔ [48/50]` so durability is visible without opening inventory.
+- **Dead stub actions removed** from marketplace, alchemy hall, and coliseum. Players no longer see buttons that crash. These locations will get real actions in Tier 4.

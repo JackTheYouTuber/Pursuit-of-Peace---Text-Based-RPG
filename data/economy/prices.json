@@ -2,5 +2,6 @@
   "rest": 10,
   "bath": 15,
   "tax": 100,
-  "repair_per_point": 5
+  "repair_per_point": 5,
+  "sell_price_multiplier": 0.4
 }
