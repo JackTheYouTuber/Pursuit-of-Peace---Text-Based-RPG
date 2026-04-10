@@ -1,48 +1,41 @@
 # app/version.py
-"""
-Central version definition for Pursuit of Peace.
-Bump this file when cutting a release.
-"""
-
-VERSION = "0.9.4"
+VERSION = "0.9.5"
 VERSION_LABEL = f"v{VERSION}"
 
 CHANGELOG = {
+    "0.9.5": [
+        "Major restructuring: Trinity architecture (UI / Logic / Data).",
+        "Logic Simple: 17 atomic single-job functions (heal_player, damage_player, "
+        "add_gold, remove_gold, add_item, remove_item, equip_item, unequip_item, "
+        "apply_buff, remove_buff, tick_buffs, expire_run_buffs, decay_durability, "
+        "parse_effect, set_location, increment_kills, set_year).",
+        "Logic Complex: 5 managers coordinating simples (buff_mgr, item_mgr, "
+        "player_mgr, combat_mgr, dungeon_mgr). Each validates orders and returns "
+        "(new_state, message). Never raises.",
+        "Logic Core: engine, state, year_clock, router, view_builder. "
+        "Engine delegates to managers — no game rules inline.",
+        "Data layer split into loaders (item, enemy, lore, config — one file type each) "
+        "and managers (profile_mgr, dungeon_gen, location_mgr). Wired by DataRegistry.",
+        "UI reorganised into core (app, window, controllers), complex (assembler, "
+        "coordinator), simple (widgets, binder, registry).",
+        "Router maps action_id strings to intent — engine has zero if/elif chains "
+        "for new action types.",
+    ],
     "0.9.4": [
-        "Tier 1 complete: enemies.json now fully data-driven with gold_min/gold_max, "
-        "loot_chance, and loot_count per enemy. Fallback logic removed.",
-        "Tier 2 complete: active buffs and debuffs now displayed in the player panel sidebar.",
-        "Tier 2 complete: sell_price_multiplier moved to prices.json (was hardcoded 0.4).",
-        "Tier 3 complete: repair_equipment action name mismatch fixed — engine and "
-        "services.json now both use repair_weapon / repair_armor.",
-        "Tier 3 complete: durability shown as visual bar [████░░░░] in inventory panel.",
-        "Tier 3 complete: equipment summary in player panel sidebar now shows durability.",
-        "Removed dead stub actions from marketplace, alchemy_hall, and coliseum "
-        "so players no longer see broken buttons.",
+        "Tier 1 complete: enemies.json fully data-driven with gold_min/max, "
+        "loot_chance, loot_count.",
+        "Tier 2: buffs shown in player panel. sell_price_multiplier in prices.json.",
+        "Tier 3: repair_equipment mismatch fixed. Durability bar in inventory.",
+        "Dead stub actions removed from marketplace, alchemy, coliseum.",
     ],
     "0.9.0": [
-        "Tier 3 complete: weapon/armor equipment slots, combat damage scaling, "
-        "durability decay, blacksmith repair.",
-        "Tier 2 complete: consumable Use button in inventory and mid-combat, "
-        "EffectResolver parses item effect text, BuffSystem tracks turn/run/permanent buffs.",
-        "Public Bath grants Refreshed buff (+5 max HP, expires on dungeon exit).",
-        "Inventory panel redesigned: equipment summary, Use/Equip/Unequip/Sell buttons.",
-        "Player panel now shows gear bonuses and kill count.",
-        "Tier 4 groundwork: buy_item / sell_item (40% return) wired through engine.",
+        "Tier 2 & 3 complete: equipment slots, durability, consumable effects, "
+        "buff system, inventory UI redesign.",
     ],
     "0.8.0": [
-        "Tier 1 fixes applied: enemies now drop gold and loot on defeat.",
-        "Death handling corrected: player profile is deleted on death (not just reset).",
-        "items.json updated with stat_bonus and durability fields for all weapons/armor.",
-        "player/defaults.json updated with equipped_weapon/armor slots and stat tracking.",
-        "Kill counter (player_state['kills']) now persisted.",
+        "Tier 1 fixes: combat gold/loot rewards, profile deleted on death, "
+        "kill counter.",
     ],
-    "0.7.3": [
-        "Year rollover trigger implemented (ISSUE-008).",
-        "Dungeon lore text populated (ISSUE-009).",
-    ],
-    "0.7.0": [
-        "Enemy counter-attack implemented (ISSUE-001).",
-        "Player death detection (ISSUE-002).",
-    ],
+    "0.7.3": ["Year rollover. Dungeon lore text."],
+    "0.7.0": ["Enemy counter-attack. Player death detection."],
 }
