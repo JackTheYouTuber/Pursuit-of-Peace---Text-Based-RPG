@@ -1,41 +1,36 @@
 # app/version.py
-VERSION = "0.9.5"
+VERSION = "0.9.6"
 VERSION_LABEL = f"v{VERSION}"
 
 CHANGELOG = {
+    "0.9.6": [
+        "Player is no longer special — player and enemies use the same state dict shape "
+        "and the same simples. Only their controllers differ.",
+        "PlayerMgr: exclusive controller for the player. Calls simples directly. "
+        "Handles city services, economy, year cycle.",
+        "EntityMgr: exclusive controller for non-player entities (enemies, companions). "
+        "Calls the same simples independently. No cross-delegation between managers.",
+        "CombatMgr: coordinates PlayerMgr (player side) and EntityMgr (enemy side) "
+        "symmetrically. Player action sent by human; enemy action decided by entity_ai.",
+        "entity_ai.py (simple): pure function — entity state + combat context → action "
+        "string. No imports. Primitively checks HP ratio to decide attack vs heal.",
+        "New fragment simples extracted so both managers call shared logic independently: "
+        "resolve_equip, resolve_unequip, apply_consumable, get_weapon_bonus, "
+        "get_armor_defense, get_buff_bonus, get_effective_max_hp, get_buff_summary, "
+        "is_alive, hp_ratio.",
+        "Renamed: heal_player→heal_entity, damage_player→damage_entity, "
+        "increment_kills→increment_stat (now general-purpose).",
+        "Removed: item_mgr and buff_mgr — functionality absorbed into player_mgr "
+        "and entity_mgr respectively, which each call simples directly.",
+        "ViewBuilder uses fragment simples directly (get_buff_bonus, get_buff_summary) "
+        "rather than going through a manager.",
+    ],
     "0.9.5": [
-        "Major restructuring: Trinity architecture (UI / Logic / Data).",
-        "Logic Simple: 17 atomic single-job functions (heal_player, damage_player, "
-        "add_gold, remove_gold, add_item, remove_item, equip_item, unequip_item, "
-        "apply_buff, remove_buff, tick_buffs, expire_run_buffs, decay_durability, "
-        "parse_effect, set_location, increment_kills, set_year).",
-        "Logic Complex: 5 managers coordinating simples (buff_mgr, item_mgr, "
-        "player_mgr, combat_mgr, dungeon_mgr). Each validates orders and returns "
-        "(new_state, message). Never raises.",
-        "Logic Core: engine, state, year_clock, router, view_builder. "
-        "Engine delegates to managers — no game rules inline.",
-        "Data layer split into loaders (item, enemy, lore, config — one file type each) "
-        "and managers (profile_mgr, dungeon_gen, location_mgr). Wired by DataRegistry.",
-        "UI reorganised into core (app, window, controllers), complex (assembler, "
-        "coordinator), simple (widgets, binder, registry).",
-        "Router maps action_id strings to intent — engine has zero if/elif chains "
-        "for new action types.",
+        "Trinity architecture: Data / Logic / UI. Bureaucracy: Core → Complex → Simple.",
+        "17 atomic simple units, 5 complex managers, 3 core orchestrators.",
     ],
     "0.9.4": [
-        "Tier 1 complete: enemies.json fully data-driven with gold_min/max, "
-        "loot_chance, loot_count.",
-        "Tier 2: buffs shown in player panel. sell_price_multiplier in prices.json.",
-        "Tier 3: repair_equipment mismatch fixed. Durability bar in inventory.",
-        "Dead stub actions removed from marketplace, alchemy, coliseum.",
+        "Tier 1-3 gap closure: data-driven loot/gold, buff display, repair fix, "
+        "durability bar, dead stub actions removed.",
     ],
-    "0.9.0": [
-        "Tier 2 & 3 complete: equipment slots, durability, consumable effects, "
-        "buff system, inventory UI redesign.",
-    ],
-    "0.8.0": [
-        "Tier 1 fixes: combat gold/loot rewards, profile deleted on death, "
-        "kill counter.",
-    ],
-    "0.7.3": ["Year rollover. Dungeon lore text."],
-    "0.7.0": ["Enemy counter-attack. Player death detection."],
 }
