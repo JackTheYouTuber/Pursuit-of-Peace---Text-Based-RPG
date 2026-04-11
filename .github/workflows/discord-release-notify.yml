@@ -1,0 +1,28 @@
+name: Discord Release Notification
+
+# This workflow runs automatically whenever you publish a release
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      # This step checks out your repository's code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # This step sends the notification to Discord
+      - name: Send Notification to Discord
+        uses: SethCohen/github-releases-to-discord@v1
+        with:
+          # The secret you created in the previous step
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Optional customization: Change the color, username, etc.
+          username: 'GitHub Release Bot'
+          avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'
+          color: '2105893' # A nice blue color
+          content: '||@everyone||' # Uncomment to ping @everyone (the spoiler tags are a common way to hide the ping)
+          footer_title: 'Released'
+          footer_timestamp: true
