@@ -1,0 +1,18 @@
+{
+  "profile_name": "exile_test",
+  "last_saved": "2026-04-10T18:17:05.433055",
+  "player_state": {
+    "hp": 20,
+    "max_hp": 20,
+    "gold": 50,
+    "level": 1,
+    "inventory": [],
+    "year": 1,
+    "tax_paid": false,
+    "buffs": [],
+    "equipped_weapon": null,
+    "equipped_armor": null,
+    "kills": 0,
+    "times_died": 0
+  }
+}

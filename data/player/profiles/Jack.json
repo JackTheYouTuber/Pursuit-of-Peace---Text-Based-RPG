@@ -1,0 +1,14 @@
+{
+  "profile_name": "Jack",
+  "last_saved": "2026-04-08T14:09:04.690786",
+  "player_state": {
+    "hp": 20,
+    "max_hp": 20,
+    "gold": 50,
+    "level": 1,
+    "inventory": [],
+    "year": 1,
+    "tax_paid": false,
+    "buffs": []
+  }
+}
