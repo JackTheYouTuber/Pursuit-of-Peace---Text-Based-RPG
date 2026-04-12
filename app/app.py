@@ -21,7 +21,9 @@ class App:
     W, H = 1024, 720
     MIN_W, MIN_H = 800, 560
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, debug: bool = False):
+        self._logger = logger
+        self._debug  = debug
         self._logger = logger
         self._root = tk.Tk()
         self._root.title(f"Pursuit of Peace  {VERSION_LABEL}")

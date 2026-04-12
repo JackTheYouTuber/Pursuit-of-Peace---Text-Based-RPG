@@ -54,7 +54,10 @@ class DataBinder:
                     data_sources[field] = src
             if data_sources:
                 bindings["data_sources"] = data_sources
-                initial_data = {field: cls.get_nested(state, src, "") for field, src in data_sources.items()}
+                initial_data = {}
+                for field, src in data_sources.items():
+                    default = [] if field == "shop" else ""
+                    initial_data[field] = cls.get_nested(state, src, default)
                 widget.update_data(initial_data)
 
         elif comp_type == "CombatPanel":
@@ -117,7 +120,10 @@ class DataBinder:
         elif comp_type == "LocationPanel":
             data_sources = bindings.get("data_sources", {})
             if data_sources:
-                data = {field: cls.get_nested(state, src, "") for field, src in data_sources.items()}
+                data = {}
+                for field, src in data_sources.items():
+                    default = [] if field == "shop" else ""
+                    data[field] = cls.get_nested(state, src, default)
                 widget.update_data(data)
         elif comp_type == "CombatPanel":
             cls._update_combat_panel(widget, state, bindings)
