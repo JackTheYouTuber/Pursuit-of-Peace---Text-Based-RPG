@@ -2,22 +2,15 @@
 """
 DevTools – Merged Utility for "Pursuit of Peace"
 
-This application provides three essential development tools in one window:
+This application provides five development tools in one window:
 
-1. Pycache Cleaner
-   Recursively deletes all `__pycache__` folders inside a user‑selected directory.
+1. Pycache Cleaner – delete all __pycache__ folders.
+2. Audit Tool – runs the game engine with random actions, logs progress.
+3. Build Tool – builds standalone executables for the Game and for DevTools itself.
+4. Validate Actions – checks all data/actions/*.json against schema.
+5. Generate Resolver – scaffolds a new action JSON and resolver stub.
 
-2. Audit Tool
-   Runs the game engine with random actions for a given number of steps,
-   logs progress, detects crashes, and allows exporting the log.
-   Requires the game's `app` modules to be importable.
-
-3. Build Tool
-   Checks for PyInstaller, installs it if missing, and builds a standalone
-   executable (one‑file, optional console/windowed mode). It can also copy
-   the `data/` folder next to the built executable.
-
-All tools share a consistent dark theme and provide tooltips for better usability.
+All tools share a consistent dark theme via the game's UI system.
 """
 
 import os
@@ -28,31 +21,33 @@ import threading
 import queue
 import traceback
 import random
+import json
+import pathlib
+import textwrap
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
+from tkinter import ttk, filedialog, messagebox
 from datetime import datetime
 from typing import Optional, Tuple, Dict, Any, List
 
+# ----------------------------------------------------------------------
+# Import game UI components (replaces raw Tkinter)
+# ----------------------------------------------------------------------
+try:
+    from app.ui.simple.basic.text_display import TextDisplay
+    from app.ui.simple.basic.menu_list import MenuList
+    from app.ui.simple.basic.stat_bar import StatBar
+    from app.ui.simple.style_manager import StyleManager
+    from app.ui.simple.theme import load_theme
+    UI_AVAILABLE = True
+except ImportError:
+    UI_AVAILABLE = False
+    # Fallback: we will still run but with raw widgets (should not happen in correct environment)
 
 # ----------------------------------------------------------------------
-# Helper: Tooltip
+# Helper: Tooltip (unchanged, uses raw Tk because it's simple)
 # ----------------------------------------------------------------------
 class ToolTip:
-    """
-    Create a simple tooltip that appears when hovering over a widget.
-
-    Usage:
-        ToolTip(widget, "Helpful text")
-    """
-
     def __init__(self, widget: tk.Widget, text: str) -> None:
-        """
-        Attach a tooltip to the given widget.
-
-        Args:
-            widget: The Tkinter widget that will show the tooltip.
-            text:   The tooltip text to display.
-        """
         self.widget = widget
         self.text = text
         self.tip_window = None
@@ -60,7 +55,6 @@ class ToolTip:
         widget.bind('<Leave>', self.leave)
 
     def enter(self, event=None) -> None:
-        """Show the tooltip window near the widget."""
         x, y, _, _ = self.widget.bbox("insert")
         x += self.widget.winfo_rootx() + 25
         y += self.widget.winfo_rooty() + 25
@@ -73,36 +67,22 @@ class ToolTip:
         label.pack()
 
     def leave(self, event=None) -> None:
-        """Destroy the tooltip window."""
         if self.tip_window:
             self.tip_window.destroy()
             self.tip_window = None
 
 
 # ----------------------------------------------------------------------
-# Section 1: Pycache Cleaner
+# Section 1: Pycache Cleaner (unchanged logic, but uses themed parent)
 # ----------------------------------------------------------------------
 class PycacheCleaner(tk.Frame):
-    """
-    A frame that allows the user to delete all __pycache__ folders
-    recursively under a chosen directory.
-    """
-
     def __init__(self, parent: tk.Widget) -> None:
-        """
-        Initialize the Pycache Cleaner UI.
-
-        Args:
-            parent: The parent widget (usually a ttk.Notebook tab).
-        """
         super().__init__(parent, bg="#1e1e2e")
         self.path_var = tk.StringVar()
         self._build_ui()
         self.log("Ready. Select a directory and click 'Start Deletion'.")
 
     def _build_ui(self) -> None:
-        """Create all widgets for this tool."""
-        # Path selection row
         frame_path = tk.Frame(self, bg="#1e1e2e")
         frame_path.pack(pady=10, padx=10, fill=tk.X)
 
@@ -117,7 +97,6 @@ class PycacheCleaner(tk.Frame):
         btn_browse.pack(side=tk.RIGHT)
         ToolTip(btn_browse, "Select the root folder to scan for __pycache__ directories")
 
-        # Action buttons
         frame_buttons = tk.Frame(self, bg="#1e1e2e")
         frame_buttons.pack(pady=5)
 
@@ -132,35 +111,33 @@ class PycacheCleaner(tk.Frame):
         btn_clear.pack(side=tk.LEFT, padx=5)
         ToolTip(btn_clear, "Clear the log display")
 
-        # Log area
-        self.log_area = scrolledtext.ScrolledText(self, wrap=tk.WORD, width=80, height=25,
-                                                  bg="#1e1e2e", fg="#cdd6f4",
-                                                  insertbackground="#cdd6f4")
+        # Use game's TextDisplay instead of ScrolledText
+        if UI_AVAILABLE:
+            self.log_area = TextDisplay(self, content="")
+        else:
+            self.log_area = tk.Text(self, wrap=tk.WORD, bg="#1e1e2e", fg="#cdd6f4")
         self.log_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
     def browse_folder(self) -> None:
-        """Open a directory chooser and set the target path."""
         folder = filedialog.askdirectory(title="Select Directory to Scan")
         if folder:
             self.path_var.set(folder)
 
     def log(self, message: str) -> None:
-        """Insert a message into the log area and scroll to the end."""
-        self.log_area.insert(tk.END, message + "\n")
-        self.log_area.see(tk.END)
+        if UI_AVAILABLE and hasattr(self.log_area, 'append'):
+            self.log_area.append(message + "\n")
+        else:
+            self.log_area.insert(tk.END, message + "\n")
+            self.log_area.see(tk.END)
         self.update_idletasks()
 
     def clear_log(self) -> None:
-        """Clear all text from the log area."""
-        self.log_area.delete(1.0, tk.END)
+        if UI_AVAILABLE and hasattr(self.log_area, 'set_content'):
+            self.log_area.set_content("")
+        else:
+            self.log_area.delete(1.0, tk.END)
 
     def _delete_pycache_folders(self, root_path: str) -> Tuple[int, int]:
-        """
-        Walk through root_path and delete every '__pycache__' directory.
-
-        Returns:
-            Tuple (deleted_count, error_count)
-        """
         deleted = 0
         errors = 0
         for dirpath, dirnames, _ in os.walk(root_path):
@@ -176,7 +153,6 @@ class PycacheCleaner(tk.Frame):
         return deleted, errors
 
     def start_deletion(self) -> None:
-        """Start the deletion process after validation and confirmation."""
         target = self.path_var.get().strip()
         if not target:
             messagebox.showwarning("No Directory", "Please select a directory first.")
@@ -202,9 +178,8 @@ class PycacheCleaner(tk.Frame):
 
 
 # ----------------------------------------------------------------------
-# Section 2: Audit Tool
+# Section 2: Audit Tool (refactored to use TextDisplay and StatBar)
 # ----------------------------------------------------------------------
-# Attempt to import the game engine components; handle gracefully if missing.
 try:
     from app.data_loader import DataLoader
     from app.dungeon_manager import DungeonManager
@@ -215,22 +190,11 @@ except ImportError as e:
     GAME_MODULES_AVAILABLE = False
     GAME_IMPORT_ERROR = str(e)
 
-
 class QueueLogger:
-    """
-    Logger that puts messages into a queue for the GUI to consume.
-    Mimics the logging interface expected by the game engine.
-    """
-
     def __init__(self, log_queue: queue.Queue) -> None:
-        """
-        Args:
-            log_queue: Queue to which log messages will be sent.
-        """
         self.log_queue = log_queue
 
     def _put(self, level: str, msg: str, context: Any = None) -> None:
-        """Internal method to queue a log message."""
         self.log_queue.put({
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "level": level,
@@ -240,34 +204,17 @@ class QueueLogger:
 
     def info(self, msg: str, context: Any = None) -> None:
         self._put("INFO", msg, context)
-
     def warn(self, msg: str, context: Any = None) -> None:
         self._put("WARN", msg, context)
-
     def error(self, msg: str, context: Any = None) -> None:
         self._put("ERROR", msg, context)
-
     def system(self, msg: str) -> None:
         self._put("SYSTEM", msg)
-
     def data(self, event: str, detail: Any = None) -> None:
-        # Not used in this audit tool, but required by the engine's logger interface.
         pass
 
-
 class AuditRunner:
-    """
-    Runs the game engine in a background thread, performing random actions
-    for a given number of steps. Reports crashes and logs progress.
-    """
-
     def __init__(self, max_steps: int, seed: Optional[int], log_queue: queue.Queue) -> None:
-        """
-        Args:
-            max_steps: Number of random actions to simulate.
-            seed:      Optional random seed for reproducibility.
-            log_queue: Queue to send log messages and progress updates.
-        """
         self.max_steps = max_steps
         self.seed = seed
         self.log_queue = log_queue
@@ -277,7 +224,6 @@ class AuditRunner:
         self.crash_info: Optional[Dict[str, Any]] = None
 
     def run(self) -> None:
-        """Start the audit. This method is intended to run in a separate thread."""
         self.running = True
         self.stop_flag.clear()
         if self.seed is not None:
@@ -313,7 +259,7 @@ class AuditRunner:
                 break
             if step % 100 == 0:
                 self.logger.info(f"Step {step} completed.")
-            self.log_queue.put({"progress": step})
+            self.log_queue.put({"progress": step, "step": step, "total": self.max_steps})
 
         self.running = False
         if not self.crash_info and not self.stop_flag.is_set():
@@ -322,14 +268,12 @@ class AuditRunner:
             self.logger.system("Audit terminated due to crash.")
 
     def _init_game(self) -> None:
-        """Instantiate the game engine and its dependencies."""
         loader = DataLoader(logger=self.logger)
         dungeon_mgr = DungeonManager(loader, logger=self.logger)
         location_mgr = LocationManager(loader, dungeon_mgr, logger=self.logger)
         self.engine = GameEngine(loader, location_mgr, dungeon_mgr, logger=self.logger)
 
     def _do_one_step(self) -> None:
-        """Perform one random action based on the current game state."""
         if self.combat_active and self.current_enemy:
             self._do_combat_action()
         elif self.engine.dungeon_state is not None:
@@ -338,7 +282,6 @@ class AuditRunner:
             self._do_city_action()
 
     def _do_city_action(self) -> None:
-        """Choose a random city action and execute it."""
         state = self.engine.get_view_state("city")
         actions = state.get("location", {}).get("actions", [])
         if not actions:
@@ -351,7 +294,6 @@ class AuditRunner:
             self.logger.info(msg)
 
     def _do_dungeon_action(self) -> None:
-        """Choose a random dungeon action and execute it."""
         state = self.engine.get_view_state("dungeon")
         actions = state.get("location", {}).get("actions", [])
         if not actions:
@@ -371,7 +313,6 @@ class AuditRunner:
                 self.current_enemy = {"id": "unknown", "name": "Enemy", "hp": 10}
 
     def _do_combat_action(self) -> None:
-        """Choose a random combat action (attack or flee)."""
         actions = [{"id": "attack"}, {"id": "flee"}]
         action = random.choice(actions)
         action_id = action["id"]
@@ -385,16 +326,7 @@ class AuditRunner:
 
 
 class AuditToolFrame(tk.Frame):
-    """
-    GUI for the Audit Tool. Provides controls to start/stop an audit,
-    displays progress, and shows coloured log output.
-    """
-
     def __init__(self, parent: tk.Widget) -> None:
-        """
-        Args:
-            parent: The parent widget (usually a ttk.Notebook tab).
-        """
         super().__init__(parent, bg="#1e1e2e")
         self.parent = parent
         self.audit_thread: Optional[threading.Thread] = None
@@ -405,8 +337,6 @@ class AuditToolFrame(tk.Frame):
         self._poll_queue()
 
     def _build_ui(self) -> None:
-        """Create all widgets for the audit tool."""
-        # Control row
         control_frame = tk.Frame(self, bg="#1e1e2e")
         control_frame.pack(fill=tk.X, padx=10, pady=10)
 
@@ -414,8 +344,7 @@ class AuditToolFrame(tk.Frame):
             .grid(row=0, column=0, sticky=tk.W, padx=5)
         self.steps_var = tk.StringVar(value="1000")
         steps_entry = tk.Entry(control_frame, textvariable=self.steps_var,
-                               width=10, bg="#313244", fg="#cdd6f4",
-                               insertbackground="#cdd6f4")
+                               width=10, bg="#313244", fg="#cdd6f4")
         steps_entry.grid(row=0, column=1, padx=5)
         ToolTip(steps_entry, "Number of random actions to simulate")
 
@@ -423,78 +352,61 @@ class AuditToolFrame(tk.Frame):
             .grid(row=0, column=2, sticky=tk.W, padx=5)
         self.seed_var = tk.StringVar(value="")
         seed_entry = tk.Entry(control_frame, textvariable=self.seed_var,
-                              width=15, bg="#313244", fg="#cdd6f4",
-                              insertbackground="#cdd6f4")
+                              width=15, bg="#313244", fg="#cdd6f4")
         seed_entry.grid(row=0, column=3, padx=5)
         ToolTip(seed_entry, "Fixed random seed for reproducible runs")
 
         self.run_btn = ttk.Button(control_frame, text="Run Audit", command=self.start_audit)
         self.run_btn.grid(row=0, column=4, padx=10)
-        ToolTip(self.run_btn, "Start the audit process")
 
         self.stop_btn = ttk.Button(control_frame, text="Stop", command=self.stop_audit,
                                    state=tk.DISABLED)
         self.stop_btn.grid(row=0, column=5, padx=5)
-        ToolTip(self.stop_btn, "Stop the currently running audit")
 
         self.export_btn = ttk.Button(control_frame, text="Export Log", command=self.export_log)
         self.export_btn.grid(row=0, column=6, padx=5)
-        ToolTip(self.export_btn, "Save the log to a text file")
 
-        # Progress bar
-        self.progress_var = tk.IntVar()
-        self.progress_bar = ttk.Progressbar(self, variable=self.progress_var,
-                                            maximum=100, mode='determinate')
-        self.progress_bar.pack(fill=tk.X, padx=10, pady=5)
+        # Use StatBar for progress + status
+        self.progress_stat = StatBar(self, label="Progress:", value="0%")
+        self.progress_stat.pack(fill=tk.X, padx=10, pady=5)
 
-        # Status label
-        self.status_label = tk.Label(self, text="Ready", bg="#1e1e2e", fg="#a6adc8")
-        self.status_label.pack(anchor=tk.W, padx=10, pady=2)
-
-        # Log display
-        self.log_display = scrolledtext.ScrolledText(self, wrap=tk.WORD, bg="#1e1e2e",
-                                                     fg="#cdd6f4", font=("Consolas", 9),
-                                                     height=25)
+        # Use TextDisplay for log output
+        if UI_AVAILABLE:
+            self.log_display = TextDisplay(self, content="")
+        else:
+            self.log_display = tk.Text(self, wrap=tk.WORD, bg="#1e1e2e", fg="#cdd6f4")
         self.log_display.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Colour tags for log levels
-        self.log_display.tag_config("INFO", foreground="#89b4fa")
-        self.log_display.tag_config("WARN", foreground="#f9e2af")
-        self.log_display.tag_config("ERROR", foreground="#f38ba8")
-        self.log_display.tag_config("SYSTEM", foreground="#cba6f7")
-
         if not GAME_MODULES_AVAILABLE:
-            self.log_display.insert(tk.END,
-                                    f"WARNING: Game modules not found. Audit will fail.\n"
-                                    f"{GAME_IMPORT_ERROR}\n", "ERROR")
+            self._log(f"WARNING: Game modules not found. Audit will fail.\n{GAME_IMPORT_ERROR}")
+
+    def _log(self, text: str, level: str = "INFO") -> None:
+        if UI_AVAILABLE and hasattr(self.log_display, 'append'):
+            self.log_display.append(text + "\n")
+        else:
+            self.log_display.insert(tk.END, text + "\n")
+            self.log_display.see(tk.END)
 
     def _poll_queue(self) -> None:
-        """
-        Periodically check the log queue and update the GUI.
-        This method is called repeatedly via `after()`.
-        """
         try:
             while True:
                 msg = self.log_queue.get_nowait()
                 if "progress" in msg:
-                    step = msg["progress"]
-                    total = int(self.steps_var.get()) if self.steps_var.get().isdigit() else 1000
+                    step = msg["step"]
+                    total = msg["total"]
                     percent = int((step / total) * 100)
-                    self.progress_var.set(percent)
-                    self.status_label.config(text=f"Step {step} / {total}")
+                    self.progress_stat.set_value(f"{percent}% ({step}/{total})")
                 else:
                     ts = msg.get("timestamp", "")
                     level = msg.get("level", "INFO")
                     text = msg.get("message", "")
-                    line = f"[{ts}] [{level}] {text}\n"
-                    self.log_display.insert(tk.END, line, level)
-                    self.log_display.see(tk.END)
+                    line = f"[{ts}] [{level}] {text}"
+                    self._log(line)
         except queue.Empty:
             pass
         self.after_id = self.after(100, self._poll_queue)
 
     def start_audit(self) -> None:
-        """Validate inputs and start the audit in a background thread."""
         try:
             steps = int(self.steps_var.get())
             if steps <= 0:
@@ -512,10 +424,12 @@ class AuditToolFrame(tk.Frame):
                 messagebox.showerror("Invalid input", "Seed must be an integer.")
                 return
 
-        # Clear previous log and reset UI
-        self.log_display.delete(1.0, tk.END)
-        self.progress_var.set(0)
-        self.status_label.config(text="Running...")
+        if UI_AVAILABLE and hasattr(self.log_display, 'set_content'):
+            self.log_display.set_content("")
+        else:
+            self.log_display.delete(1.0, tk.END)
+
+        self.progress_stat.set_value("0%")
         self.run_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
         self.export_btn.config(state=tk.DISABLED)
@@ -526,7 +440,6 @@ class AuditToolFrame(tk.Frame):
         self._monitor_audit()
 
     def _monitor_audit(self) -> None:
-        """Check if the audit thread is still alive; re-enable UI when finished."""
         if self.audit_thread and self.audit_thread.is_alive():
             self.after(500, self._monitor_audit)
         else:
@@ -534,49 +447,41 @@ class AuditToolFrame(tk.Frame):
             self.stop_btn.config(state=tk.DISABLED)
             self.export_btn.config(state=tk.NORMAL)
             if self.runner and self.runner.crash_info:
-                self.status_label.config(text="Crash detected! See log.")
                 crash = self.runner.crash_info
                 messagebox.showerror("Crash during audit",
-                                     f"Crash at step {crash.get('step', '?')}\n"
-                                     f"{crash.get('exception', '')}\n\nFull details in log.")
+                                     f"Crash at step {crash.get('step', '?')}\n{crash.get('exception', '')}")
             else:
-                self.status_label.config(text="Audit completed.")
+                self.progress_stat.set_value("Audit completed")
 
     def stop_audit(self) -> None:
-        """Signal the audit runner to stop."""
         if self.runner:
             self.runner.stop_flag.set()
-            self.status_label.config(text="Stopping...")
             self.stop_btn.config(state=tk.DISABLED)
 
     def export_log(self) -> None:
-        """Save the current log content to a text file."""
-        if not self.log_display.get(1.0, tk.END).strip():
+        content = ""
+        if UI_AVAILABLE and hasattr(self.log_display, 'get_content'):
+            content = self.log_display.get_content()
+        else:
+            content = self.log_display.get(1.0, tk.END)
+        if not content.strip():
             messagebox.showinfo("No log", "Nothing to export.")
             return
-        filepath = filedialog.asksaveasfilename(
-            defaultextension=".txt",
-            filetypes=[("Text files", "*.txt"), ("Log files", "*.log")]
-        )
+        filepath = filedialog.asksaveasfilename(defaultextension=".txt",
+                                                filetypes=[("Text files", "*.txt")])
         if filepath:
             try:
                 with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(self.log_display.get(1.0, tk.END))
+                    f.write(content)
                 messagebox.showinfo("Export successful", f"Log saved to {filepath}")
             except Exception as e:
                 messagebox.showerror("Export failed", str(e))
 
 
 # ----------------------------------------------------------------------
-# Section 3: Build Tool
+# Section 3: Build Tool (now can build both Game and DevTools)
 # ----------------------------------------------------------------------
 def check_pyinstaller() -> bool:
-    """
-    Check whether PyInstaller is available on the system.
-
-    Returns:
-        True if `pyinstaller --version` runs successfully, else False.
-    """
     try:
         subprocess.run(["pyinstaller", "--version"],
                        capture_output=True, check=True,
@@ -585,194 +490,201 @@ def check_pyinstaller() -> bool:
     except (subprocess.SubprocessError, FileNotFoundError):
         return False
 
-
 class BuildTool(tk.Frame):
-    """
-    GUI for building the game into a standalone executable using PyInstaller.
-    """
-
     def __init__(self, parent: tk.Widget, main_root: tk.Tk) -> None:
-        """
-        Args:
-            parent:    The parent widget (usually a ttk.Notebook tab).
-            main_root: The root Tk window (used for popup dialogs).
-        """
         super().__init__(parent, bg="#1e1e2e")
         self.parent = parent
         self.main_root = main_root
 
-        # User options
-        default_script = os.path.abspath("main.pyw")
-        self.main_script = tk.StringVar(value=default_script)
-        self.output_name = tk.StringVar(value="PursuitOfPeace")
-        self.icon_path = tk.StringVar(value="")
-        self.console_mode = tk.BooleanVar(value=False)   # False = windowed
-        self.copy_data = tk.BooleanVar(value=True)
-        self.clean_before = tk.BooleanVar(value=True)
+        # Game build options
+        self.game_script = tk.StringVar(value=os.path.abspath("main.pyw"))
+        self.game_output = tk.StringVar(value="PursuitOfPeace")
+        self.game_icon = tk.StringVar(value="")
+        self.game_console = tk.BooleanVar(value=False)
+        self.game_copy_data = tk.BooleanVar(value=True)
+        self.game_clean = tk.BooleanVar(value=True)
 
-        self.build_btn: Optional[ttk.Button] = None
+        # DevTools build options
+        self.dev_script = tk.StringVar(value=os.path.abspath("DevTools.pyw"))
+        self.dev_output = tk.StringVar(value="DevTools")
+        self.dev_icon = tk.StringVar(value="")
+        self.dev_console = tk.BooleanVar(value=True)   # DevTools should show console for debug output
+        self.dev_copy_data = tk.BooleanVar(value=False)  # DevTools doesn't need data folder
+        self.dev_clean = tk.BooleanVar(value=True)
+
+        self.build_btn_game: Optional[ttk.Button] = None
+        self.build_btn_dev: Optional[ttk.Button] = None
         self.status_label: Optional[tk.Label] = None
-        self.log_text: Optional[scrolledtext.ScrolledText] = None
+        self.log_text: Optional[TextDisplay] = None
         self.install_btn: Optional[ttk.Button] = None
 
         self._create_widgets()
         self._check_pyinstaller_status()
-        # Automatically search for main script if default not found
-        self._ensure_main_script_exists()
+        self._ensure_scripts_exist()
 
-    def _ensure_main_script_exists(self) -> None:
-        """If the current main script path is invalid, try to find it or ask the user."""
-        current = self.main_script.get().strip()
-        if os.path.isfile(current):
-            return  # already valid
-
-        # Try to find main.pyw or main.py in current directory or one level up
-        search_dirs = [os.getcwd(), os.path.dirname(os.getcwd())]
-        found = None
-        for d in search_dirs:
-            for candidate in ["main.pyw", "main.py"]:
-                path = os.path.join(d, candidate)
-                if os.path.isfile(path):
-                    found = path
-                    break
-            if found:
-                break
-
-        if found:
-            self.main_script.set(found)
-            self._log(f"Auto‑detected main script: {found}")
-        else:
-            # Ask the user to locate it
-            self._log("Main script not found automatically. Please locate it manually.")
-            self._prompt_for_main_script()
-
-    def _prompt_for_main_script(self) -> None:
-        """Show a dialog asking the user to select the main script."""
-        answer = messagebox.askyesno(
-            "Main Script Missing",
-            "Could not find 'main.pyw' or 'main.py' in the current or parent directory.\n\n"
-            "Do you want to locate it manually now?\n"
-            "If you click No, you can browse later using the 'Browse...' button."
-        )
-        if answer:
-            self._browse_main()
+    def _ensure_scripts_exist(self) -> None:
+        for var, name in [(self.game_script, "main.pyw"), (self.dev_script, "DevTools.pyw")]:
+            path = var.get()
+            if not os.path.isfile(path):
+                # try current directory
+                alt = os.path.join(os.getcwd(), name)
+                if os.path.isfile(alt):
+                    var.set(alt)
+                    self._log(f"Auto-detected {alt}")
 
     def _create_widgets(self) -> None:
-        """Create all widgets for the build tool."""
         main_frame = tk.Frame(self, bg="#1e1e2e")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Row 0: Main script
+        # Notebook for two build configurations
+        notebook = ttk.Notebook(main_frame)
+        notebook.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        # Tab 1: Build Game
+        game_frame = ttk.Frame(notebook)
+        notebook.add(game_frame, text="Build Game")
+        self._build_config_ui(game_frame, "game")
+
+        # Tab 2: Build DevTools
+        dev_frame = ttk.Frame(notebook)
+        notebook.add(dev_frame, text="Build DevTools")
+        self._build_config_ui(dev_frame, "dev")
+
+        # Status and log area (shared)
+        self.status_label = tk.Label(main_frame, text="Ready", bg="#1e1e2e", fg="#a6adc8")
+        self.status_label.pack(anchor=tk.W, pady=5)
+
+        if UI_AVAILABLE:
+            self.log_text = TextDisplay(main_frame, content="")
+        else:
+            self.log_text = tk.Text(main_frame, wrap=tk.WORD, bg="#1e1e2e", fg="#cdd6f4", height=18)
+        self.log_text.pack(fill=tk.BOTH, expand=True, pady=5)
+
+    def _build_config_ui(self, parent, target: str) -> None:
+        """Add UI controls for a build target (game or dev)."""
+        # Script path
         row = 0
-        tk.Label(main_frame, text="Main script:", bg="#1e1e2e", fg="#cdd6f4") \
+        tk.Label(parent, text="Main script:", bg="#1e1e2e", fg="#cdd6f4") \
             .grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.script_entry = tk.Entry(main_frame, textvariable=self.main_script,
-                                     width=60, bg="#313244", fg="#cdd6f4",
-                                     insertbackground="#cdd6f4")
-        self.script_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W+tk.E)
-        btn_browse_script = ttk.Button(main_frame, text="Browse...", command=self._browse_main)
-        btn_browse_script.grid(row=row, column=2, padx=5, pady=5)
-        ToolTip(btn_browse_script, "Select your main game script (main.pyw or main.py)")
+        entry_var = self.game_script if target == "game" else self.dev_script
+        entry = tk.Entry(parent, textvariable=entry_var, width=60,
+                         bg="#313244", fg="#cdd6f4")
+        entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W+tk.E)
+        btn_browse = ttk.Button(parent, text="Browse...",
+                                command=lambda: self._browse_script(target))
+        btn_browse.grid(row=row, column=2, padx=5)
+        ToolTip(btn_browse, "Select the main Python script")
 
-        # Row 1: Output name
+        # Output name
         row += 1
-        tk.Label(main_frame, text="Executable name:", bg="#1e1e2e", fg="#cdd6f4") \
+        tk.Label(parent, text="Executable name:", bg="#1e1e2e", fg="#cdd6f4") \
             .grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.output_entry = tk.Entry(main_frame, textvariable=self.output_name,
-                                     width=30, bg="#313244", fg="#cdd6f4")
-        self.output_entry.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
-        tk.Label(main_frame, text="(.exe added on Windows)", bg="#1e1e2e", fg="#a6adc8") \
-            .grid(row=row, column=2, sticky=tk.W, padx=5)
-        ToolTip(self.output_entry, "Name of the final executable file")
+        out_var = self.game_output if target == "game" else self.dev_output
+        out_entry = tk.Entry(parent, textvariable=out_var, width=30,
+                             bg="#313244", fg="#cdd6f4")
+        out_entry.grid(row=row, column=1, sticky=tk.W, padx=5)
+        ToolTip(out_entry, "Name of the final executable (no extension)")
 
-        # Row 2: Icon file
+        # Icon
         row += 1
-        tk.Label(main_frame, text="Icon file (.ico):", bg="#1e1e2e", fg="#cdd6f4") \
+        tk.Label(parent, text="Icon file (.ico):", bg="#1e1e2e", fg="#cdd6f4") \
             .grid(row=row, column=0, sticky=tk.W, pady=5)
-        self.icon_entry = tk.Entry(main_frame, textvariable=self.icon_path,
-                                   width=60, bg="#313244", fg="#cdd6f4")
-        self.icon_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W+tk.E)
-        btn_browse_icon = ttk.Button(main_frame, text="Browse...", command=self._browse_icon)
-        btn_browse_icon.grid(row=row, column=2, padx=5, pady=5)
-        ToolTip(btn_browse_icon, "Optional: select an .ico file for the executable")
+        icon_var = self.game_icon if target == "game" else self.dev_icon
+        icon_entry = tk.Entry(parent, textvariable=icon_var, width=60,
+                              bg="#313244", fg="#cdd6f4")
+        icon_entry.grid(row=row, column=1, padx=5, sticky=tk.W+tk.E)
+        btn_browse_icon = ttk.Button(parent, text="Browse...",
+                                     command=lambda: self._browse_icon(target))
+        btn_browse_icon.grid(row=row, column=2, padx=5)
+        ToolTip(btn_browse_icon, "Optional: select an .ico file")
 
-        # Row 3: Build options frame
+        # Options
         row += 1
-        options_frame = tk.LabelFrame(main_frame, text="Build Options",
+        options_frame = tk.LabelFrame(parent, text="Build Options",
                                       bg="#313244", fg="#cdd6f4", padx=5, pady=5)
         options_frame.grid(row=row, column=0, columnspan=3, sticky=tk.W+tk.E, pady=10)
 
-        # One-file is always enabled and not user‑changeable.
-        tk.Checkbutton(options_frame, text="One-file executable (--onefile)",
-                       state="disabled", bg="#313244", fg="#a6adc8",
-                       selectcolor="#313244").grid(row=0, column=0, sticky=tk.W)
+        console_var = self.game_console if target == "game" else self.dev_console
+        cb_windowed = tk.Checkbutton(options_frame, text="Windowed mode (no console)",
+                                     variable=console_var, onvalue=False, offvalue=True,
+                                     bg="#313244", fg="#cdd6f4", selectcolor="#313244")
+        cb_windowed.grid(row=0, column=0, sticky=tk.W)
+        ToolTip(cb_windowed, "If checked, the executable will not open a terminal window")
 
-        self.windowed_check = tk.Checkbutton(options_frame,
-                                             text="Windowed mode (no console) (--windowed)",
-                                             variable=self.console_mode,
-                                             onvalue=False, offvalue=True,
-                                             bg="#313244", fg="#cdd6f4", selectcolor="#313244")
-        self.windowed_check.grid(row=0, column=1, sticky=tk.W, padx=20)
-        ToolTip(self.windowed_check, "If checked, the game will run without a terminal window")
+        copy_var = self.game_copy_data if target == "game" else self.dev_copy_data
+        cb_copy = tk.Checkbutton(options_frame, text="Copy 'data/' folder after build",
+                                 variable=copy_var, bg="#313244", fg="#cdd6f4",
+                                 selectcolor="#313244")
+        cb_copy.grid(row=1, column=0, sticky=tk.W)
+        ToolTip(cb_copy, "Automatically copy the data folder into the dist/ directory")
 
-        self.copy_check = tk.Checkbutton(options_frame,
-                                         text="Copy 'data/' folder next to executable after build",
-                                         variable=self.copy_data,
-                                         bg="#313244", fg="#cdd6f4", selectcolor="#313244")
-        self.copy_check.grid(row=1, column=0, sticky=tk.W)
-        ToolTip(self.copy_check, "Automatically copy the data folder into the dist/ directory")
+        clean_var = self.game_clean if target == "game" else self.dev_clean
+        cb_clean = tk.Checkbutton(options_frame, text="Remove previous build/ and dist/ folders",
+                                  variable=clean_var, bg="#313244", fg="#cdd6f4",
+                                  selectcolor="#313244")
+        cb_clean.grid(row=2, column=0, sticky=tk.W)
+        ToolTip(cb_clean, "Start with a fresh build environment")
 
-        self.clean_check = tk.Checkbutton(options_frame,
-                                          text="Remove previous 'build/' and 'dist/' folders before building",
-                                          variable=self.clean_before,
-                                          bg="#313244", fg="#cdd6f4", selectcolor="#313244")
-        self.clean_check.grid(row=1, column=1, sticky=tk.W, padx=20)
-        ToolTip(self.clean_check, "Start with a fresh build environment")
-
-        # Row 4: Build button
+        # Build button
         row += 1
-        self.build_btn = ttk.Button(main_frame, text="BUILD GAME",
-                                    command=self._start_build, width=20)
-        self.build_btn.grid(row=row, column=0, columnspan=3, pady=15)
-        ToolTip(self.build_btn, "Start building the game executable")
+        btn = ttk.Button(parent, text=f"BUILD {target.upper()}",
+                         command=lambda: self._start_build(target))
+        btn.grid(row=row, column=0, columnspan=3, pady=15)
+        if target == "game":
+            self.build_btn_game = btn
+        else:
+            self.build_btn_dev = btn
 
-        # Row 5: Status label
-        row += 1
-        self.status_label = tk.Label(main_frame, text="Ready", bg="#1e1e2e", fg="#a6adc8")
-        self.status_label.grid(row=row, column=0, columnspan=3, sticky=tk.W)
+        # Configure grid weights
+        parent.columnconfigure(1, weight=1)
 
-        # Row 6 & 7: Build output log
-        row += 1
-        tk.Label(main_frame, text="Build Output:", bg="#1e1e2e", fg="#cdd6f4") \
-            .grid(row=row, column=0, sticky=tk.W, pady=(10, 0))
-        row += 1
-        self.log_text = scrolledtext.ScrolledText(main_frame, height=18, width=90,
-                                                  wrap=tk.WORD, bg="#1e1e2e",
-                                                  fg="#cdd6f4", insertbackground="#cdd6f4")
-        self.log_text.grid(row=row, column=0, columnspan=3, pady=5,
-                           sticky=tk.W+tk.E+tk.N+tk.S)
+    def _browse_script(self, target: str) -> None:
+        filename = filedialog.askopenfilename(title="Select main script",
+                                              filetypes=[("Python files", "*.py *.pyw")])
+        if filename:
+            if target == "game":
+                self.game_script.set(filename)
+            else:
+                self.dev_script.set(filename)
+            self._log(f"Script set to: {filename}")
 
-        # Configure grid weights for resizing
-        main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(row, weight=1)
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
+    def _browse_icon(self, target: str) -> None:
+        filename = filedialog.askopenfilename(title="Select icon file (.ico)",
+                                              filetypes=[("Icon files", "*.ico")])
+        if filename:
+            if target == "game":
+                self.game_icon.set(filename)
+            else:
+                self.dev_icon.set(filename)
+            self._log(f"Icon set to: {filename}")
+
+    def _log(self, message: str) -> None:
+        if UI_AVAILABLE and hasattr(self.log_text, 'append'):
+            self.log_text.append(message + "\n")
+        else:
+            self.log_text.insert(tk.END, message + "\n")
+            self.log_text.see(tk.END)
+        self.update_idletasks()
 
     def _check_pyinstaller_status(self) -> None:
-        """Update UI based on whether PyInstaller is installed."""
         if not check_pyinstaller():
             self.status_label.config(text="PyInstaller not found. Click 'Install PyInstaller' first.",
                                      foreground="#f38ba8")
             self.install_btn = ttk.Button(self, text="Install PyInstaller",
                                           command=self._install_pyinstaller)
-            self.install_btn.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
-            self.build_btn.config(state="disabled")
+            self.install_btn.place(relx=0.5, rely=0.95, anchor=tk.CENTER)
+            if self.build_btn_game:
+                self.build_btn_game.config(state="disabled")
+            if self.build_btn_dev:
+                self.build_btn_dev.config(state="disabled")
         else:
             self.status_label.config(text="PyInstaller is ready.", foreground="#a6e3a1")
-            self.build_btn.config(state="normal")
+            if self.build_btn_game:
+                self.build_btn_game.config(state="normal")
+            if self.build_btn_dev:
+                self.build_btn_dev.config(state="normal")
 
     def _install_pyinstaller(self) -> None:
-        """Install PyInstaller via pip in a background thread, showing a progress popup."""
         def install_thread():
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
             proc = subprocess.Popen(
@@ -789,65 +701,46 @@ class BuildTool(tk.Frame):
             proc.wait()
             progress_window.destroy()
             if proc.returncode == 0:
-                messagebox.showinfo("Success",
-                                    "PyInstaller installed successfully.\nYou can now build the game.")
+                messagebox.showinfo("Success", "PyInstaller installed successfully.")
                 self._check_pyinstaller_status()
             else:
                 messagebox.showerror("Installation Failed",
                                      f"Could not install PyInstaller.\n\n{''.join(output_lines)[:500]}")
-            self.build_btn.config(state="normal")
-
         progress_window = tk.Toplevel(self.main_root)
         progress_window.title("Installing PyInstaller")
         progress_window.geometry("500x100")
         progress_label = tk.Label(progress_window, text="Installing... please wait")
         progress_label.pack(pady=20)
-        tk.Label(progress_window, text="This may take a minute.").pack()
-        self.build_btn.config(state="disabled")
         threading.Thread(target=install_thread, daemon=True).start()
 
-    def _browse_main(self) -> None:
-        """Open a file dialog to select the main script."""
-        filename = filedialog.askopenfilename(title="Select main script",
-                                              filetypes=[("Python files", "*.py *.pyw")])
-        if filename:
-            self.main_script.set(filename)
-            self._log(f"Main script set to: {filename}")
-
-    def _browse_icon(self) -> None:
-        """Open a file dialog to select an icon file."""
-        filename = filedialog.askopenfilename(title="Select icon file (.ico)",
-                                              filetypes=[("Icon files", "*.ico")])
-        if filename:
-            self.icon_path.set(filename)
-            self._log(f"Icon set to: {filename}")
-
-    def _log(self, message: str) -> None:
-        """Append a message to the build output log."""
-        self.log_text.insert(tk.END, message + "\n")
-        self.log_text.see(tk.END)
-        self.update_idletasks()
-
-    def _start_build(self) -> None:
-        """Validate options and start the PyInstaller build in a background thread."""
+    def _start_build(self, target: str) -> None:
         if not check_pyinstaller():
-            messagebox.showerror("Missing Dependency",
-                                 "PyInstaller is not installed.\nClick 'Install PyInstaller' first.")
+            messagebox.showerror("Missing Dependency", "PyInstaller is not installed.")
             return
 
-        main_script = self.main_script.get().strip()
-        if not os.path.isfile(main_script):
-            error_msg = f"Main script not found:\n{main_script}\n\nPlease select a valid script using 'Browse...'."
-            messagebox.showerror("Error", error_msg)
-            self._log(error_msg)
-            return
+        if target == "game":
+            script = self.game_script.get().strip()
+            output = self.game_output.get().strip()
+            icon = self.game_icon.get().strip()
+            console_mode = self.game_console.get()
+            copy_data = self.game_copy_data.get()
+            clean = self.game_clean.get()
+        else:
+            script = self.dev_script.get().strip()
+            output = self.dev_output.get().strip()
+            icon = self.dev_icon.get().strip()
+            console_mode = self.dev_console.get()
+            copy_data = self.dev_copy_data.get()
+            clean = self.dev_clean.get()
 
-        output_name = self.output_name.get().strip()
-        if not output_name:
+        if not os.path.isfile(script):
+            messagebox.showerror("Error", f"Main script not found:\n{script}")
+            return
+        if not output:
             messagebox.showerror("Error", "Please enter an executable name.")
             return
 
-        if self.clean_before.get():
+        if clean:
             for folder in ["build", "dist"]:
                 if os.path.exists(folder):
                     try:
@@ -857,65 +750,60 @@ class BuildTool(tk.Frame):
                         self._log(f"Warning: could not remove {folder}: {e}")
 
         cmd = ["pyinstaller", "--onefile", "--noconfirm"]
-        if not self.console_mode.get():
+        if not console_mode:
             cmd.append("--windowed")
-        icon = self.icon_path.get().strip()
         if icon and os.path.isfile(icon):
             cmd.append(f"--icon={icon}")
-        cmd.append(f"--name={output_name}")
-        cmd.append(main_script)
+        cmd.append(f"--name={output}")
+        cmd.append(script)
 
-        self._log("=== Starting build ===")
+        self._log(f"=== Building {target.upper()} ===")
         self._log(f"Command: {' '.join(cmd)}")
-        self.status_label.config(text="Building... please wait", foreground="#89b4fa")
-        self.build_btn.config(state="disabled")
-        threading.Thread(target=self._run_build, args=(cmd,), daemon=True).start()
+        self.status_label.config(text=f"Building {target}... please wait", foreground="#89b4fa")
+        if target == "game" and self.build_btn_game:
+            self.build_btn_game.config(state="disabled")
+        elif target == "dev" and self.build_btn_dev:
+            self.build_btn_dev.config(state="disabled")
+        threading.Thread(target=self._run_build, args=(cmd, target, copy_data), daemon=True).start()
 
-    def _run_build(self, cmd: List[str]) -> None:
-        """
-        Execute PyInstaller and capture its output.
-
-        Args:
-            cmd: The PyInstaller command as a list of strings.
-        """
+    def _run_build(self, cmd: List[str], target: str, copy_data: bool) -> None:
         try:
-            # Hide the console window completely on Windows.
             startupinfo = None
             creationflags = 0
             if sys.platform == "win32":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startupinfo.wShowWindow = 0  # SW_HIDE
+                startupinfo.wShowWindow = 0
                 creationflags = subprocess.CREATE_NO_WINDOW
 
-            proc = subprocess.Popen(cmd,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
-                                    text=True,
-                                    bufsize=1,
-                                    startupinfo=startupinfo,
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                    text=True, bufsize=1, startupinfo=startupinfo,
                                     creationflags=creationflags)
             for line in iter(proc.stdout.readline, ""):
                 if line:
                     self._log(line.rstrip())
             proc.wait()
             if proc.returncode == 0:
-                self._log("\n=== Build completed successfully ===")
-                self.status_label.config(text="Build successful!", foreground="#a6e3a1")
-                if self.copy_data.get():
+                self._log(f"\n=== Build {target.upper()} completed successfully ===")
+                self.status_label.config(text=f"Build {target} successful!", foreground="#a6e3a1")
+                if copy_data and target == "game":
                     self._copy_data_folder()
+                elif copy_data and target == "dev":
+                    self._log("Note: DevTools does not require the data folder. Skipping copy.")
             else:
                 self._log(f"\n=== Build failed with error code {proc.returncode} ===")
-                self.status_label.config(text="Build failed. See output above.", foreground="#f38ba8")
+                self.status_label.config(text=f"Build {target} failed.", foreground="#f38ba8")
         except Exception as e:
             self._log(f"Exception during build: {e}")
             self.status_label.config(text="Build error occurred.", foreground="#f38ba8")
         finally:
-            self.build_btn.config(state="normal")
+            if target == "game" and self.build_btn_game:
+                self.build_btn_game.config(state="normal")
+            elif target == "dev" and self.build_btn_dev:
+                self.build_btn_dev.config(state="normal")
 
     def _copy_data_folder(self) -> None:
-        """Copy the 'data/' folder from the main script's directory to the 'dist/' folder."""
-        main_dir = os.path.dirname(self.main_script.get())
+        main_dir = os.path.dirname(self.game_script.get())
         source_data = os.path.join(main_dir, "data")
         if not os.path.isdir(source_data):
             self._log(f"Warning: data folder not found at '{source_data}'. Skipping copy.")
@@ -934,92 +822,41 @@ class BuildTool(tk.Frame):
 
 
 # ----------------------------------------------------------------------
-# Main Application
-# ----------------------------------------------------------------------
-class DevToolsApp:
-    """Main application window containing a notebook with the three tools."""
-
-    def __init__(self) -> None:
-        """Set up the root window, apply theme, and create tabs."""
-        self.root = tk.Tk()
-        self.root.title("DevTools – Pursuit of Peace")
-        self.root.geometry("1000x750")
-        self.root.configure(bg="#1e1e2e")
-
-        # Configure ttk styles for a consistent dark look
-        self.style = ttk.Style()
-        if 'clam' in self.style.theme_names():
-            self.style.theme_use('clam')
-        self.style.configure("TFrame", background="#1e1e2e")
-        self.style.configure("TLabel", background="#1e1e2e", foreground="#cdd6f4")
-        self.style.configure("TButton", background="#45475a", foreground="#cdd6f4")
-        self.style.map("TButton", background=[("active", "#89b4fa")])
-        self.style.configure("TEntry", fieldbackground="#313244", foreground="#cdd6f4")
-        self.style.configure("TProgressbar", background="#89b4fa")
-
-        # Notebook (tabbed interface)
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Tab 1: Pycache Cleaner
-        self.pycache_frame = PycacheCleaner(self.notebook)
-        self.notebook.add(self.pycache_frame, text="Pycache Cleaner")
-
-        # Tab 2: Audit Tool
-        self.audit_frame = AuditToolFrame(self.notebook)
-        self.notebook.add(self.audit_frame, text="Audit Tool")
-
-        # Tab 3: Build Tool (pass the main root for popups)
-        self.build_frame = BuildTool(self.notebook, self.root)
-        self.notebook.add(self.build_frame, text="Build Tool")
-
-        # Tab 4: Validate Actions (AAD)
-        self.validate_frame = ValidateActionsFrame(self.note
-
-# ----------------------------------------------------------------------
-# Tab 4 — Validate Actions
+# Section 4: Validate Actions (refactored to use TextDisplay)
 # ----------------------------------------------------------------------
 class ValidateActionsFrame(ttk.Frame):
-    """Validates every data/actions/*.json against the action JSON schema."""
-
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent)
         ttk.Label(self, text="Validate Action JSON Files",
                   font=("Segoe UI", 12, "bold")).pack(pady=(10, 4))
-        ttk.Label(self, text=(
-            "Reads every file in data/actions/ and checks for required fields "
-            "(id, resolver) and correct types."
-        ), wraplength=700, justify=tk.LEFT).pack(padx=10, anchor=tk.W)
+        ttk.Label(self, text=("Reads every file in data/actions/ and checks required fields."),
+                  wraplength=700, justify=tk.LEFT).pack(padx=10, anchor=tk.W)
 
         btn_frame = ttk.Frame(self)
         btn_frame.pack(pady=6)
-        ttk.Button(btn_frame, text="Run Validation",
-                   command=self._run).pack(side=tk.LEFT, padx=4)
-        ttk.Button(btn_frame, text="Clear",
-                   command=self._clear).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_frame, text="Run Validation", command=self._run).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_frame, text="Clear", command=self._clear).pack(side=tk.LEFT, padx=4)
 
-        self._log = scrolledtext.ScrolledText(self, height=28, state=tk.DISABLED,
-                                               bg="#1e1e2e", fg="#cdd6f4",
-                                               font=("Consolas", 9))
+        if UI_AVAILABLE:
+            self._log = TextDisplay(self, content="")
+        else:
+            self._log = tk.Text(self, wrap=tk.WORD, bg="#1e1e2e", fg="#cdd6f4", height=28)
         self._log.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
 
     def _write(self, text: str, tag: str = "") -> None:
-        self._log.configure(state=tk.NORMAL)
-        self._log.insert(tk.END, text + "\n", tag)
-        self._log.see(tk.END)
-        self._log.configure(state=tk.DISABLED)
-        self._log.tag_config("ok",   foreground="#a6e3a1")
-        self._log.tag_config("warn", foreground="#f9e2af")
-        self._log.tag_config("err",  foreground="#f38ba8")
-        self._log.tag_config("head", foreground="#89b4fa")
+        if UI_AVAILABLE and hasattr(self._log, 'append'):
+            self._log.append(text + "\n")
+        else:
+            self._log.insert(tk.END, text + "\n")
+            self._log.see(tk.END)
 
     def _clear(self) -> None:
-        self._log.configure(state=tk.NORMAL)
-        self._log.delete("1.0", tk.END)
-        self._log.configure(state=tk.DISABLED)
+        if UI_AVAILABLE and hasattr(self._log, 'set_content'):
+            self._log.set_content("")
+        else:
+            self._log.delete("1.0", tk.END)
 
     def _run(self) -> None:
-        import json, pathlib
         self._clear()
         actions_dir = pathlib.Path("data/actions")
         if not actions_dir.exists():
@@ -1059,27 +896,23 @@ class ValidateActionsFrame(ttk.Frame):
                 self._write(f"  [TYPE ERROR] {fp.name}: {'; '.join(type_errors)}", "err")
                 err += 1
             else:
-                self._write(
-                    f"  [OK] {fp.name}  (id={data['id']}, resolver={data['resolver']})", "ok")
+                self._write(f"  [OK] {fp.name}  (id={data['id']}, resolver={data['resolver']})", "ok")
                 ok += 1
 
         self._write(f"\n─── Result: {ok} OK, {err} error(s). ───", "head")
 
 
 # ----------------------------------------------------------------------
-# Tab 5 — Generate Resolver
+# Section 5: Generate Resolver (refactored to use TextDisplay)
 # ----------------------------------------------------------------------
 class GenerateResolverFrame(ttk.Frame):
-    """Scaffolds a new action JSON and stub resolver Python file."""
-
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent)
         ttk.Label(self, text="Generate New Action + Resolver Stub",
                   font=("Segoe UI", 12, "bold")).pack(pady=(10, 4))
-        ttk.Label(self, text=(
-            "Enter an action ID and resolver path. The tool creates the action JSON "
-            "and a stub resolver Python file automatically."
-        ), wraplength=700, justify=tk.LEFT).pack(padx=10, anchor=tk.W)
+        ttk.Label(self, text=("Enter an action ID and resolver path. The tool creates the action JSON "
+                              "and a stub resolver Python file automatically."),
+                  wraplength=700, justify=tk.LEFT).pack(padx=10, anchor=tk.W)
 
         form = ttk.Frame(self)
         form.pack(padx=16, pady=8, fill=tk.X)
@@ -1088,15 +921,11 @@ class GenerateResolverFrame(ttk.Frame):
         self._action_id = ttk.Entry(form, width=40)
         self._action_id.insert(0, "pray_at_shrine")
         self._action_id.grid(row=0, column=1, sticky=tk.W, padx=8)
-        ttk.Label(form, text="e.g. pray_at_shrine",
-                  foreground="#6c7086").grid(row=0, column=2, sticky=tk.W)
 
         ttk.Label(form, text="Resolver:").grid(row=1, column=0, sticky=tk.W, pady=3)
         self._resolver = ttk.Entry(form, width=40)
         self._resolver.insert(0, "location.pray")
         self._resolver.grid(row=1, column=1, sticky=tk.W, padx=8)
-        ttk.Label(form, text="e.g. location.pray  →  resolvers/location/pray.py",
-                  foreground="#6c7086").grid(row=1, column=2, sticky=tk.W)
 
         ttk.Label(form, text="Description:").grid(row=2, column=0, sticky=tk.W, pady=3)
         self._desc = ttk.Entry(form, width=60)
@@ -1105,29 +934,25 @@ class GenerateResolverFrame(ttk.Frame):
 
         ttk.Button(self, text="Generate Files", command=self._generate).pack(pady=6)
 
-        self._log = scrolledtext.ScrolledText(self, height=22, state=tk.DISABLED,
-                                               bg="#1e1e2e", fg="#cdd6f4",
-                                               font=("Consolas", 9))
+        if UI_AVAILABLE:
+            self._log = TextDisplay(self, content="")
+        else:
+            self._log = tk.Text(self, wrap=tk.WORD, bg="#1e1e2e", fg="#cdd6f4", height=22)
         self._log.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
 
     def _write(self, text: str, tag: str = "") -> None:
-        self._log.configure(state=tk.NORMAL)
-        self._log.insert(tk.END, text + "\n", tag)
-        self._log.see(tk.END)
-        self._log.configure(state=tk.DISABLED)
-        self._log.tag_config("ok",   foreground="#a6e3a1")
-        self._log.tag_config("err",  foreground="#f38ba8")
-        self._log.tag_config("head", foreground="#89b4fa")
+        if UI_AVAILABLE and hasattr(self._log, 'append'):
+            self._log.append(text + "\n")
+        else:
+            self._log.insert(tk.END, text + "\n")
+            self._log.see(tk.END)
 
     def _generate(self) -> None:
-        import json, pathlib, textwrap
-        action_id   = self._action_id.get().strip()
-        resolver    = self._resolver.get().strip()
+        action_id = self._action_id.get().strip()
+        resolver = self._resolver.get().strip()
         description = self._desc.get().strip()
 
-        self._log.configure(state=tk.NORMAL)
-        self._log.delete("1.0", tk.END)
-        self._log.configure(state=tk.DISABLED)
+        self._clear()
 
         if not action_id or not resolver:
             self._write("ERROR: Action ID and Resolver are required.", "err")
@@ -1136,7 +961,6 @@ class GenerateResolverFrame(ttk.Frame):
             self._write("ERROR: No spaces allowed in Action ID or Resolver.", "err")
             return
 
-        # Create action JSON
         actions_dir = pathlib.Path("data/actions")
         actions_dir.mkdir(parents=True, exist_ok=True)
         json_path = actions_dir / f"{action_id}.json"
@@ -1152,7 +976,6 @@ class GenerateResolverFrame(ttk.Frame):
                 json.dump(payload, f, indent=2)
             self._write(f"[CREATED] {json_path}", "ok")
 
-        # Create resolver stub
         parts = resolver.split(".")
         resolver_dir = pathlib.Path("app/logic/resolvers").joinpath(*parts[:-1])
         resolver_dir.mkdir(parents=True, exist_ok=True)
@@ -1183,19 +1006,63 @@ class GenerateResolverFrame(ttk.Frame):
             py_path.write_text(stub)
             self._write(f"[CREATED] {py_path}", "ok")
 
-        self._write(
-            "\nDone. Restart the game/dispatcher to auto-discover the new resolver.",
-            "head")
+        self._write("\nDone. Restart the game/dispatcher to auto-discover the new resolver.", "head")
 
-book)
+    def _clear(self) -> None:
+        if UI_AVAILABLE and hasattr(self._log, 'set_content'):
+            self._log.set_content("")
+        else:
+            self._log.delete("1.0", tk.END)
+
+
+# ----------------------------------------------------------------------
+# Main Application
+# ----------------------------------------------------------------------
+class DevToolsApp:
+    def __init__(self) -> None:
+        self.root = tk.Tk()
+        self.root.title("DevTools – Pursuit of Peace")
+        self.root.geometry("1000x750")
+        self.root.configure(bg="#1e1e2e")
+
+        # Load game theme and initialise style manager (if UI available)
+        if UI_AVAILABLE:
+            theme = load_theme("data/ui/themes.json", logger=None)
+            StyleManager.init_styles(self.root, theme)
+
+        # Apply basic ttk styles for fallback
+        self.style = ttk.Style()
+        if 'clam' in self.style.theme_names():
+            self.style.theme_use('clam')
+        self.style.configure("TFrame", background="#1e1e2e")
+        self.style.configure("TLabel", background="#1e1e2e", foreground="#cdd6f4")
+        self.style.configure("TButton", background="#45475a", foreground="#cdd6f4")
+        self.style.map("TButton", background=[("active", "#89b4fa")])
+
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Tab 1: Pycache Cleaner
+        self.pycache_frame = PycacheCleaner(self.notebook)
+        self.notebook.add(self.pycache_frame, text="Pycache Cleaner")
+
+        # Tab 2: Audit Tool
+        self.audit_frame = AuditToolFrame(self.notebook)
+        self.notebook.add(self.audit_frame, text="Audit Tool")
+
+        # Tab 3: Build Tool
+        self.build_frame = BuildTool(self.notebook, self.root)
+        self.notebook.add(self.build_frame, text="Build Tool")
+
+        # Tab 4: Validate Actions
+        self.validate_frame = ValidateActionsFrame(self.notebook)
         self.notebook.add(self.validate_frame, text="Validate Actions")
 
-        # Tab 5: Generate Resolver (AAD)
+        # Tab 5: Generate Resolver
         self.gen_frame = GenerateResolverFrame(self.notebook)
         self.notebook.add(self.gen_frame, text="Generate Resolver")
 
     def run(self) -> None:
-        """Start the Tkinter main loop."""
         self.root.mainloop()
 
 
