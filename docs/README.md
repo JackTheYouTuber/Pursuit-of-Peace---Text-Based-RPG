@@ -79,7 +79,7 @@ python DevTools.pyw
 
 ## Community & Links
 
-- **Play on Itch.io**: [jacktheyoutuber.itch.io/pursuit-of-peace](https://jacktheyoutuber.itch.io/pursuit-of-peace)
+- **Play on Itch.io**: [jackheavenfall.itch.io/pursuit-of-peace](https://jackheavenfall.itch.io/pursuit-of-peace)
 - **Discord**: [Join the community](https://discord.gg/HPVcBv5Dma)
 - **Subreddit**: [r/PursuitOfPeaceGame](https://www.reddit.com/r/PursuitOfPeaceGame/)
 
