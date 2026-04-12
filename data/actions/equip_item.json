@@ -1,0 +1,6 @@
+{
+  "id": "equip_item",
+  "resolver": "equip_item",
+  "context_requirements": ["reference"],
+  "description": "Equip a weapon or armor from inventory into the appropriate slot."
+}

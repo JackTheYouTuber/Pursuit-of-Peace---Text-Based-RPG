@@ -1,0 +1,7 @@
+{
+  "id": "repair_armor",
+  "resolver": "location.repair",
+  "reference": "equipped_armor",
+  "context_requirements": ["current_location_id", "equipped_armor"],
+  "description": "Repair equipped armor at the Blacksmith. Cost per durability point."
+}

@@ -1,296 +1,229 @@
-# Data Schema Reference — Pursuit of Peace
+# Data Schema Reference — Pursuit of Peace  v1.0.0
 
-All game content is stored as JSON files under `data/`. This document describes the schema for each file.
+All game content lives in JSON files under `data/`. This document describes every schema.
 
 ---
 
-## `data/player/defaults.json`
+## `data/actions/<action_id>.json`  *(new in v1.0.0)*
 
-Default state applied to every new profile.
+The AAD action catalogue. One file per player action.
 
 ```json
 {
-  "hp":        20,
-  "max_hp":    20,
-  "gold":      50,
-  "level":     1,
-  "inventory": [],
-  "year":      1,
-  "tax_paid":  false,
-  "buffs":     []
+  "id":                   "take_bath",
+  "resolver":             "location.bath",
+  "cost":                 {"gold": 15},
+  "effects": [
+    {"type": "heal_player", "entity_id": "0", "quantity": 5},
+    {"type": "add_buff",    "entity_id": "0", "reference": "buff_refreshed"}
+  ],
+  "context_requirements": ["current_location_id"],
+  "description":          "Soak in the public bath. Gain Refreshed buff for this run."
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `hp` | int | Current hit points |
-| `max_hp` | int | Maximum hit points |
-| `gold` | int | Current gold |
-| `level` | int | Player level (currently cosmetic) |
-| `inventory` | string[] | List of `item_id` strings |
-| `year` | int | Current in-game year |
-| `tax_paid` | bool | Whether tax has been paid this year |
-| `buffs` | object[] | Active buff/debuff list (see services schema) |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | ✓ | Unique action identifier. Must match filename stem. |
+| `resolver` | string | ✓ | Dot-path to resolver module (e.g. `"location.bath"`). |
+| `cost` | object | — | Optional gold/resource cost hint for UI display. |
+| `effects` | array | — | Declarative sub-effects (informational; resolvers decide execution). |
+| `context_requirements` | array | — | Keys that must be present in ActionContext for this action to be valid. |
+| `reference` | any | — | Default value for `ActionContext.reference` if not overridden by caller. |
+| `description` | string | — | Human-readable description for developer tools. |
 
----
-
-## `data/player/profiles/<name>.json`
-
-One file per saved profile.
-
-```json
-{
-  "profile_name": "Jack",
-  "last_saved":   "2026-04-08T14:09:00",
-  "player_state": { ... }
-}
-```
-
-`player_state` matches the defaults schema above.
-
----
-
-## `data/city/locations.json`
-
-Array of location definitions.
-
-```json
-[
-  {
-    "id":            "tavern",
-    "name":          "Tavern",
-    "access":        "always",
-    "condition_ref": null
-  }
-]
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique location identifier |
-| `name` | string | Display name |
-| `access` | string | `"always"` or a condition key (future use) |
-| `condition_ref` | string\|null | Key into a conditions table (not yet used) |
+`id` and `resolver` are the only two fields validated at startup. All others are advisory.
 
 ---
 
 ## `data/city/services.json`
 
-Object mapping `location_id` → service config. Drives all action menus.
+Location service definitions. Each key is a `location_id`.
 
 ```json
 {
-  "tavern": {
-    "actions":   ["rest", "hear_rumors", "go_city"],
-    "rest_cost": 10
+  "marketplace": {
+    "actions": ["buy_item", "sell_item", "go_city"],
+    "shop_inventory": [
+      "item_sword_iron_01",
+      "item_armor_leather_01",
+      "item_bandage_01"
+    ]
   },
-  "public_bath": {
-    "actions":    ["take_bath", "go_city"],
-    "bath_cost":  15,
-    "bath_buff": {
-      "stat":     "max_hp",
-      "amount":   5,
-      "duration": "one_run",
-      "label":    "Refreshed"
-    }
+  "blacksmiths_street": {
+    "actions": ["repair_weapon", "repair_armor", "go_city"],
+    "repair_per_point": 5,
+    "shop_inventory": ["item_sword_iron_01", "item_armor_chain_01"]
   }
 }
 ```
 
-The `actions` array is the canonical list of action IDs shown to the player at that location. Extra keys are service-specific config consumed by action handlers.
-
----
-
-## `data/economy/prices.json`
-
-Flat map of service costs.
-
-```json
-{
-  "rest":            10,
-  "bath":            15,
-  "tax":             100,
-  "repair_per_point": 5
-}
-```
-
----
-
-## `data/dungeon/config.json`
-
-```json
-{
-  "min_rooms": 5,
-  "max_rooms": 10,
-  "max_depth": 5
-}
-```
-
 | Field | Type | Description |
-|---|---|---|
-| `min_rooms` | int | Minimum rooms per dungeon run |
-| `max_rooms` | int | Maximum rooms per dungeon run |
-| `max_depth` | int | Maximum depth level (affects enemy scaling) |
-
----
-
-## `data/dungeon/rooms/room_templates.json`
-
-Array of room type definitions.
-
-```json
-[
-  {
-    "id":        "room_enemy_01",
-    "has_enemy": true,
-    "has_item":  false,
-    "lore_key":  "lore_room_enemy_01"
-  }
-]
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique template identifier |
-| `has_enemy` | bool | Whether this room type spawns an enemy |
-| `has_item` | bool | Whether this room type contains an item |
-| `lore_key` | string | Key into `data/lore/dungeon.json` for room description text |
+|-------|------|-------------|
+| `actions` | string[] | Action IDs available at this location. Rendered as buttons in the city view. |
+| `shop_inventory` | string[] | *(new v1.0.0)* Item IDs for sale here. Triggers shop panel in UI. Optional. |
+| `rest_cost` | int | Override rest price for this location. |
+| `repair_per_point` | int | Override repair cost per durability point. |
 
 ---
 
 ## `data/dungeon/enemies/enemies.json`
 
-Array of enemy definitions.
+Enemy definitions array.
 
 ```json
-[
-  {
-    "id":          "enemy_bloat_rat_01",
-    "name":        "Bloated Rat",
-    "min_depth":   1,
-    "max_depth":   2,
-    "hp":          10,
-    "damage_min":  1,
-    "damage_max":  3,
-    "loot_table":  ["item_bone_shard_01", "item_tattered_cloth_01"]
-  }
-]
+{
+  "id":          "enemy_bloat_rat_01",
+  "name":        "Bloated Rat",
+  "min_depth":   1,
+  "max_depth":   2,
+  "hp":          10,
+  "damage_min":  1,
+  "damage_max":  3,
+  "gold_min":    2,
+  "gold_max":    5,
+  "loot_chance": 0.55,
+  "loot_count":  1,
+  "loot_table":  ["item_bone_shard_01", "item_tattered_cloth_01"]
+}
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique enemy identifier |
-| `name` | string | Display name |
-| `min_depth` | int | Minimum dungeon depth at which this enemy can spawn |
-| `max_depth` | int | Maximum depth (use 99 for no cap) |
-| `hp` | int | Starting hit points |
-| `damage_min` | int | Minimum damage per attack (not yet used — see ISSUE-001) |
-| `damage_max` | int | Maximum damage per attack (not yet used — see ISSUE-001) |
-| `loot_table` | string[] | Item IDs that can drop on defeat (not yet used) |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | ✓ | Unique enemy ID. |
+| `name` | string | ✓ | Display name. |
+| `min_depth` / `max_depth` | int | ✓ | Dungeon depth range for random spawning. |
+| `hp` | int | ✓ | Starting hit points. |
+| `damage_min` / `damage_max` | int | ✓ | Attack damage range per round. |
+| `gold_min` / `gold_max` | int | ✓ | Gold reward range on defeat. |
+| `loot_chance` | float (0–1) | ✓ | Probability of dropping loot. |
+| `loot_count` | int | ✓ | Number of items to roll when loot triggers. |
+| `loot_table` | string[] | ✓ | Pool of item IDs to draw from. |
 
 ---
 
 ## `data/dungeon/items/items.json`
 
-Array of item definitions.
-
-```json
-[
-  {
-    "id":        "item_bandage_01",
-    "name":      "Cloth Bandage",
-    "type":      "consumable",
-    "min_depth": 0,
-    "value":     6,
-    "effect":    "Restores 5 hp",
-    "source":    null
-  }
-]
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique item identifier |
-| `name` | string | Display name |
-| `type` | string | `"weapon"`, `"armor"`, `"consumable"`, `"misc"` |
-| `min_depth` | int | Minimum dungeon depth for this item to appear |
-| `value` | int | Gold value (buy/sell price reference) |
-| `effect` | string\|null | Human-readable effect description |
-| `source` | string\|null | `"fishing"` for river-only items; `null` for dungeon items |
-
----
-
-## `data/lore/<location_id>.json`
-
-Array of lore entries for a location.
-
-```json
-[
-  {
-    "id":   "lore_key_01",
-    "type": "description",
-    "text": "The tavern smells of smoke and stale ale."
-  }
-]
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique key (used by `lore_key` in room templates) |
-| `type` | string | `"description"`, `"ambient"`, `"rumor"` |
-| `text` | string | The lore text to display |
-
-**Type behaviour:**
-- `description` — shown as the main location description text.
-- `ambient` — fallback if no description entry exists.
-- `rumor` — shown when player uses `hear_rumors` at the Tavern.
-
----
-
-## `data/ui/themes.json`
-
-Theme configuration for the `UIAssembler`.
+Item definitions array.
 
 ```json
 {
-  "global": {
-    "bg":          "#0d1b2a",
-    "fg":          "#d4c9a8",
-    "font_family": "Courier",
-    "font_size":   11
-  },
-  "TextDisplay": { "bg": "#1a1a2e" },
-  "LocationPanel": { "bg": "#16213e" }
-}
-```
-
-Keys at the top level are either `"global"` (applied as defaults) or a component type name matching the `UIAssembler._COMPONENT_REGISTRY`.
-
----
-
-## `data/ui/layouts/<view_name>.json`
-
-A layout descriptor that the `UIAssembler` reads to build a view. Uses dot-path notation (`"combat.log"`) to bind widget data to state dict fields returned by `GameEngine.get_view_state()`.
-
-```json
-{
-  "type":      "CombatPanel",
-  "name":      "combat_panel",
-  "data": {
-    "log_source":         "combat.log",
-    "enemy_name_source":  "combat.enemy_name",
-    "enemy_hp_source":    "combat.enemy_hp",
-    "actions_source":     "combat.actions"
-  },
-  "on_action": "combat_action"
+  "id":         "item_sword_iron_01",
+  "name":       "Iron Sword",
+  "type":       "weapon",
+  "min_depth":  0,
+  "value":      40,
+  "effect":     null,
+  "source":     null,
+  "stat_bonus": {"damage": 5},
+  "durability": 50
 }
 ```
 
 | Field | Type | Description |
-|---|---|---|
-| `type` | string | Component class name (must be in `UIAssembler._COMPONENT_REGISTRY`) |
-| `name` | string | Identifier used in the component cache |
-| `data` | object | Key→dot-path bindings for data sources |
-| `on_action` / `on_select` | string | Callback key looked up in the assembler's `_callbacks` dict |
-| `children` | object[] | Optional child components (for container types) |
-| `layout` | string | `"vertical"` (default) or `"horizontal"` for containers |
+|-------|------|-------------|
+| `id` | string | Unique item ID. |
+| `name` | string | Display name. |
+| `type` | string | `"weapon"`, `"armor"`, `"consumable"`, `"misc"`. |
+| `min_depth` | int | Minimum dungeon depth for loot spawning. |
+| `value` | int | Base gold value. Used for buy price; sell = `value × sell_price_multiplier`. |
+| `effect` | string\|null | Effect text for consumables. Parsed by `apply_consumable`. |
+| `source` | string\|null | `"fishing"` tags items as catchable at the river. |
+| `stat_bonus` | object | `{"damage": N}` for weapons; `{"defense": N}` for armors. |
+| `durability` | int | Base durability (weapons and armors only). |
+
+---
+
+## `data/economy/prices.json`
+
+```json
+{
+  "rest":                   10,
+  "bath":                   15,
+  "tax":                    100,
+  "repair_per_point":       5,
+  "sell_price_multiplier":  0.4
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `rest` | Gold cost to rest at the tavern. |
+| `bath` | Gold cost for the public bath. |
+| `tax` | Annual tax due at year end. |
+| `repair_per_point` | Gold per missing durability point at the blacksmith. |
+| `sell_price_multiplier` | Fraction of item `value` returned on sale (0.4 = 40%). |
+
+---
+
+## `data/player/defaults.json`
+
+Loaded for every new profile.
+
+```json
+{
+  "hp":             20,
+  "max_hp":         20,
+  "gold":           50,
+  "level":          1,
+  "inventory":      [],
+  "year":           1,
+  "tax_paid":       false,
+  "buffs":          [],
+  "equipped_weapon": null,
+  "equipped_armor":  null,
+  "kills":          0,
+  "times_died":     0
+}
+```
+
+---
+
+## `data/fish_pool.json`  *(new in v1.0.0)*
+
+Weighted pool for the fishing mini-loop (stub; active in v1.1.0).
+
+```json
+[
+  {"id": "item_fish_common_01", "name": "River Perch",    "weight": 50},
+  {"id": "item_fish_bony_01",   "name": "Bony Grey Carp", "weight": 30},
+  {"id": "item_fish_bloated_01","name": "Bloated Mudfish", "weight": 20}
+]
+```
+
+---
+
+## `data/schemas/action_schema.json`  *(new in v1.0.0)*
+
+JSON Schema used by the Validate Actions developer tool.
+
+```json
+{
+  "type": "object",
+  "required": ["id", "resolver"],
+  "properties": {
+    "id":       {"type": "string"},
+    "resolver": {"type": "string"},
+    "cost":     {"type": "object"},
+    "effects":  {"type": "array"},
+    "context_requirements": {"type": "array", "items": {"type": "string"}},
+    "reference": {},
+    "description": {"type": "string"}
+  },
+  "additionalProperties": true
+}
+```
+
+---
+
+## Buff Object Schema
+
+Stored in `player_state["buffs"]` as an array of dicts.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique buff type. Same-id buffs replace each other (no stacking). |
+| `label` | string | Display name. |
+| `stat_mods` | object | `{"max_hp": 5}`, `{"damage_bonus": 3}`, `{"defense_bonus": 2}`. |
+| `duration` | string | `"turns"`, `"one_run"`, or `"permanent"`. |
+| `duration_remaining` | int | Turn count remaining (only when `duration == "turns"`). |

@@ -1,0 +1,6 @@
+{
+  "id": "use_item",
+  "resolver": "inventory.use_item",
+  "context_requirements": ["reference"],
+  "description": "Use a consumable item from inventory. Removes item on use."
+}

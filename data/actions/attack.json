@@ -1,0 +1,6 @@
+{
+  "id": "attack",
+  "resolver": "combat.attack",
+  "context_requirements": ["enemy_id"],
+  "description": "Strike the enemy. Enemy retaliates if alive."
+}

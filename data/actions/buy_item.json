@@ -1,0 +1,6 @@
+{
+  "id": "buy_item",
+  "resolver": "shop.buy",
+  "context_requirements": ["reference", "current_location_id"],
+  "description": "Purchase an item from the current location's shop inventory."
+}

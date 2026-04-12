@@ -7,14 +7,46 @@
     "rest_cost": 10
   },
   "marketplace": {
-    "actions": ["sell_item", "go_city"]
+    "actions": ["buy_item", "sell_item", "go_city"],
+    "shop_inventory": [
+      "item_crude_knife_01",
+      "item_iron_bar_01",
+      "item_sword_iron_01",
+      "item_axe_iron_01",
+      "item_shield_wood_01",
+      "item_armor_leather_01",
+      "item_bandage_01",
+      "item_potion_health_01",
+      "item_ration_01",
+      "item_torch_01",
+      "item_rope_01"
+    ]
   },
   "alchemy_hall": {
-    "actions": ["sell_item", "go_city"]
+    "actions": ["buy_item", "sell_item", "go_city"],
+    "shop_inventory": [
+      "item_bandage_01",
+      "item_potion_health_01",
+      "item_potion_health_02",
+      "item_antidote_01",
+      "item_potion_strength_01",
+      "item_ration_01",
+      "item_reagent_sulfur_01",
+      "item_reagent_root_01"
+    ]
   },
   "blacksmiths_street": {
-    "actions": ["repair_weapon", "repair_armor", "go_city"],
-    "repair_per_point": 5
+    "actions": ["buy_item", "repair_weapon", "repair_armor", "sell_item", "go_city"],
+    "repair_per_point": 5,
+    "shop_inventory": [
+      "item_crude_knife_01",
+      "item_iron_bar_01",
+      "item_sword_iron_01",
+      "item_axe_iron_01",
+      "item_armor_leather_01",
+      "item_armor_chain_01",
+      "item_shield_wood_01"
+    ]
   },
   "city_hall": {
     "actions": ["pay_taxes", "view_debt", "go_city"]

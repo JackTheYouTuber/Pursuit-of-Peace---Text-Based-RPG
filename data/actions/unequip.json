@@ -1,0 +1,6 @@
+{
+  "id": "unequip",
+  "resolver": "inventory.unequip",
+  "context_requirements": ["reference"],
+  "description": "Unequip an item from weapon or armor slot, returning it to inventory."
+}

@@ -1,8 +1,8 @@
-# Architecture — Pursuit of Peace
+# Architecture — Pursuit of Peace  v1.0.0
 
 ## Overview
 
-The project follows a layered MVC-adjacent architecture with a data-driven UI system. Game logic, state management, UI assembly, and data loading are cleanly separated into distinct modules. All game data lives in JSON files under `data/`; no content is hardcoded in Python source.
+The project uses a strict three-layer architecture (Data → Logic → UI) centred on the **Active Action Dispatch (AAD)** system. Every player-initiated action is described as a JSON file, routed through a central dispatcher, and executed by a pure-function resolver. No game logic lives in the UI; no UI logic lives in the engine.
 
 ---
 
@@ -12,257 +12,173 @@ The project follows a layered MVC-adjacent architecture with a data-driven UI sy
 Pursuit of Peace/
 │
 ├── main.pyw                        Entry point. Creates GameLogger, runs App.
-├── DevTools.pyw                    Developer utilities: Pycache Cleaner, Audit Tool, Build Tool.
+├── DevTools.pyw                    Developer tools: Cleaner, Audit, Build, Validate Actions, Generate Resolver.
 │
 ├── app/
-│   ├── app.py                      Root application class. Wires all subsystems together.
-│   ├── version.py                  VERSION constant and CHANGELOG dict.
+│   ├── app.py                      Root wiring class. Assembles Data + Logic + UI.
+│   ├── version.py                  VERSION_LABEL constant.
 │   │
-│   ├── data_loader.py              Loads and caches all JSON data files at startup.
-│   ├── dungeon_manager.py          Generates dungeon runs; manages room traversal.
-│   ├── location_manager.py         Manages city navigation; exposes location metadata.
-│   ├── profile_manager.py          Reads/writes/deletes player profiles from disk.
-│   ├── game_engine.py              Orchestrator. Delegates to component subsystems.
-│   ├── ui_assembler.py             Thin re-export of app.ui.assembler.UIAssembler.
-│   ├── view_coordinator.py         Switches and refreshes active views.
-│   ├── logger.py                   Structured session logger.
+│   ├── data/
+│   │   ├── init/
+│   │   │   ├── registry.py         DataRegistry — builds all loaders/managers once at startup.
+│   │   │   ├── engine_factory.py   Creates Engine with a DataRegistry.
+│   │   │   └── profile_selector.py Profile selection dialog (blocking).
+│   │   ├── loaders/                ItemLoader, EnemyLoader, LoreLoader, ConfigLoader.
+│   │   └── managers/               ProfileMgr, DungeonGen, LocationMgr.
 │   │
-│   ├── init/
-│   │   ├── engine_factory.py       Constructs GameEngine with all dependencies.
-│   │   ├── profile_selector.py     Modal dialog for profile selection at startup.
-│   │   └── ui_factory.py           Stub factory (reserved for future use).
-│   │
-│   ├── controllers/
-│   │   ├── game_actions.py         Handles UI callbacks: city, dungeon, combat, inventory.
-│   │   └── profile_actions.py      Handles File menu: save, load, new game, quit.
-│   │
-│   ├── components/
-│   │   └── game_engine/
-│   │       ├── combat_system.py    Combat state machine. Attack/flee, equipment scaling,
-│   │       │                       durability decay, loot/gold awards on victory.
-│   │       ├── dungeon_actions.py  Take-item, next-room, exit-dungeon actions.
-│   │       ├── location_actions.py Rest, bath, fishing, tax, equip, repair, buy, sell.
-│   │       ├── effect_resolver.py  Parses item effect strings; applies heals and buffs.
-│   │       ├── buff_system.py      Manages active buffs: tick, expire, stat bonus queries.
-│   │       ├── navigation.py       Player movement between city locations.
-│   │       ├── state_manager.py    Holds and updates player and dungeon state.
-│   │       └── view_builder.py     Constructs state dicts consumed by the UI layer.
+│   ├── logic/
+│   │   ├── action_types.py         ActionContext (frozen) and ActionResult dataclasses.
+│   │   ├── resolver_registry.py    Auto-scans app/logic/resolvers/ at startup; no manual registration.
+│   │   ├── dispatcher.py           ActionDispatcher — load_actions() + dispatch().
+│   │   │
+│   │   ├── resolvers/              One file per resolver. Each exports resolve(ctx) → ActionResult.
+│   │   │   ├── heal_player.py
+│   │   │   ├── add_gold.py / remove_gold.py
+│   │   │   ├── add_item.py  / remove_item.py
+│   │   │   ├── equip_item.py / tick_buffs.py
+│   │   │   ├── location/           rest, bath, fish, pay_taxes, repair, hear_rumors,
+│   │   │   │                       view_debt, advance_year, enter_dungeon
+│   │   │   ├── combat/             attack, flee, award_loot
+│   │   │   ├── shop/               buy, sell
+│   │   │   ├── inventory/          use_item, unequip
+│   │   │   ├── dungeon/            take_item, next_room, enter_combat, flee
+│   │   │   ├── navigation/         go  (handles all go_* actions)
+│   │   │   └── fishing/            cast_line, fishing_tick  (stubs, v1.1.0)
+│   │   │
+│   │   ├── simple/                 ~25 atomic pure functions (add_gold, heal_entity, …).
+│   │   ├── complex/                PlayerMgr, EntityMgr, CombatMgr, DungeonMgr.
+│   │   └── core/
+│   │       ├── engine.py           Primary orchestrator. Routes all actions through AAD.
+│   │       ├── state.py            Single source of truth for player + dungeon state.
+│   │       ├── year_clock.py       Action counter; fires advance_year on rollover.
+│   │       ├── router.py           Maps action_id strings (nav, prefixed, city).
+│   │       └── view_builder.py     Builds UI state dicts from game state.
 │   │
 │   └── ui/
-│       ├── assembler.py            Data-driven view builder; reads layout JSON files.
-│       ├── component_builder.py    Instantiates widget trees from layout descriptors.
-│       ├── component_registry.py   Maps component type strings to widget classes.
-│       ├── data_binder.py          Binds state dict paths to widget update methods.
-│       ├── layout_loader.py        Reads and validates layout JSON files.
-│       ├── main_window.py          Sidebar + content frame layout.
-│       ├── menu.py                 Tkinter menubar (File menu).
-│       ├── profile_dialogs.py      Profile selection dialog.
-│       ├── style_manager.py        Applies ttk styles; exposes theme at runtime.
-│       ├── theme.py                Loads theme JSON and resolves colour tokens.
-│       ├── view_registry.py        Caches built view widgets; handles refresh.
-│       ├── constants.py            Dynamic theme constant accessor (no hardcoded values).
-│       │
-│       └── components/
-│           ├── basic/              Layer 1 widgets — zero project imports.
-│           │   ├── text_display.py Scrollable read-only text area.
-│           │   ├── menu_list.py    Clickable action-list widget.
-│           │   ├── stat_bar.py     Label + value display row.
-│           │   ├── action_button.py  Single styled button.
-│           │   ├── dialog_box.py   Modal dialog helper.
-│           │   └── input_field.py  Labelled entry field.
-│           │
-│           └── complex/            Layer 2 widgets — compose basic widgets.
-│               ├── location_panel.py   TextDisplay + MenuList (city/dungeon views).
-│               ├── combat_panel.py     Log display, enemy/player HP bars, action list.
-│               ├── inventory_panel.py  Equipment summary with durability bars,
-│               │                       item list, detail pane, Use/Equip/Sell buttons.
-│               ├── lore_panel.py       Lore text display.
-│               └── player_panel.py     HP, gold, level, gear (+dmg/+def with durability),
-│                                       kill count, active effects sidebar panel.
+│       ├── core/                   MainWindow, GameActions controller, ProfileActions controller.
+│       ├── complex/                UIAssembler, ViewCoordinator.
+│       └── simple/                 Widgets, panels, data_binder, layout_loader, view_registry.
 │
 ├── data/
-│   ├── city/
-│   │   ├── locations.json          Location IDs, names, access conditions.
-│   │   └── services.json           Per-location action lists and service config.
-│   │
-│   ├── dungeon/
-│   │   ├── config.json             Min/max rooms, max depth per run.
-│   │   ├── rooms/
-│   │   │   └── room_templates.json Room type definitions (lore_key, has_enemy, has_item).
-│   │   ├── enemies/
-│   │   │   └── enemies.json        Enemy definitions: HP, damage range, depth range,
-│   │   │                           gold_min/max, loot_chance, loot_count, loot_table.
-│   │   └── items/
-│   │       └── items.json          Item definitions: type, value, effect, source,
-│   │                               stat_bonus (weapons/armour), durability (weapons/armour).
-│   │
-│   ├── economy/
-│   │   ├── prices.json             Gold costs: rest, bath, tax, repair_per_point,
-│   │   │                           sell_price_multiplier.
-│   │   └── inventory_templates.json  (Reserved — not yet populated.)
-│   │
-│   ├── events/
-│   │   └── events.json             (Reserved — Tier 5 event system, not yet populated.)
-│   │
-│   ├── lore/
-│   │   └── *.json                  Per-location lore entries (description, ambient, rumor).
-│   │
-│   ├── player/
-│   │   ├── defaults.json           Default player state for new profiles.
-│   │   │                           Includes: hp, max_hp, gold, level, inventory,
-│   │   │                           year, tax_paid, buffs, equipped_weapon,
-│   │   │                           equipped_armor, kills, times_died.
-│   │   └── profiles/               One JSON file per saved player profile.
-│   │
-│   └── ui/
-│       ├── themes.json             Colour theme and font configuration.
-│       └── layouts/                One JSON layout descriptor per view.
-│           ├── city.json
-│           ├── dungeon.json
-│           ├── combat.json
-│           ├── inventory.json
-│           └── lore.json
+│   ├── actions/                    40 action JSON files — the AAD action catalogue.
+│   ├── city/                       locations.json, services.json (with shop_inventory).
+│   ├── dungeon/                    enemies.json (full loot fields), items.json, room_templates.json.
+│   ├── economy/                    prices.json, inventory_templates.json.
+│   ├── player/                     defaults.json, profiles/.
+│   ├── fish_pool.json              Fish item pool for the fishing mini-loop.
+│   └── ui/                         layouts/, themes.json.
 │
-├── docs/
-│   ├── README.md                   Player-facing documentation.
-│   ├── CONTRIBUTING.md             Developer guide: modding, tools, code style.
-│   ├── ARCHITECTURE.md             This file.
-│   ├── CHANGELOG.md                Full version history.
-│   ├── ROADMAP.txt                 Feature tier plan with completion status.
-│   ├── BUGFIXES.md                 Known bug resolutions.
-│   ├── KNOWN_GAPS.md               Documented gaps not yet addressed.
-│   ├── KNOWN_ISSUES.md             Open issues.
-│   ├── DATA_SCHEMA.md              JSON field reference for modders.
-│   └── LOGGER_FORMAT.txt           Log file format specification.
-│
-└── logs/
-    └── session_*.log               Auto-created structured log per session.
+└── docs/
 ```
 
 ---
 
-## Data Flow
+## Active Action Dispatch (AAD)
 
-### Startup
+### The Problem It Solves
 
-```
-main.pyw
-  └─ App.__init__()
-       ├─ DataLoader          — loads all JSON into memory
-       ├─ ProfileManager      — lists profiles on disk
-       ├─ ProfileSelector     — blocks until user picks/creates a profile
-       ├─ MainWindow          — builds root Tkinter layout (sidebar + content)
-       ├─ EngineFactory       — creates DungeonManager → LocationManager → GameEngine
-       │                         (passes ProfileManager so engine can delete on death)
-       ├─ UIAssembler         — data-driven view builder (reads layouts/*.json)
-       ├─ ViewCoordinator     — manages which view is active
-       ├─ GameActions         — wires UI callbacks to engine methods
-       └─ ProfileActions      — wires File menu to profile save/load/new/quit
-```
+Before v1.0.0, `engine.py` contained a long `if/elif` chain for every possible action string. Adding a new action required editing the engine. Actions had no formal schema; their effects were scattered across multiple methods.
 
-### Action Cycle (city example)
+### How AAD Works
 
-```
-User clicks action button
-  → MenuList._handle_select(action_id)
-  → LocationPanel._handle_action(action_id)
-  → UIAssembler callback → GameActions.on_location_action(action_id)
-  → GameEngine.do_location_action(action_id)
-       → LocationActions / Navigation (state mutation, returns new state)
-       → StateManager.update_player(new_state)
-  → ViewCoordinator.refresh_active_view()
-  → UIAssembler.refresh_view(view_name, new_state)
-  → Individual widgets updated via DataBinder bindings
+Every action is described in a small JSON file under `data/actions/`:
+
+```json
+{
+  "id":                   "take_bath",
+  "resolver":             "location.bath",
+  "cost":                 {"gold": 15},
+  "effects": [
+    {"type": "heal_player", "entity_id": "0", "quantity": 5},
+    {"type": "add_buff",    "entity_id": "0", "reference": "buff_refreshed"}
+  ],
+  "context_requirements": ["current_location_id"],
+  "description":          "Soak in the public bath. Gain Refreshed buff for this run."
+}
 ```
 
-### Inventory Action Cycle
+At startup `ActionDispatcher.load_actions()` reads every JSON, validates it, and resolves the `resolver` string against the `ResolverRegistry`. If the resolver module is missing or broken the action is marked unavailable and skipped — the game continues without it.
+
+### Message-Passing Flow
 
 ```
-User clicks item in inventory list
-  → InventoryPanel._handle_select(item_id)
-  → GameActions.on_inventory_select(item_id)
-       → Builds detail text + action buttons (Use/Equip/Sell)
-       → assembler.refresh_view("inventory", updated_state)
-
-User clicks Use / Equip / Sell button
-  → InventoryPanel._handle_action(action_id)   e.g. "use_item:item_bandage_01"
-  → GameActions.on_inventory_action(action_id)
-  → GameEngine.do_location_action(action_id)
-       → LocationActions.use_item() / equip_item() / sell_item()
-  → Inventory view refreshed, player panel updated
+UI widget click
+  → GameActions.on_city_action("take_bath")
+    → Engine.do_city_action("take_bath")
+      → Engine._dispatch("take_bath")
+        → ActionDispatcher.dispatch("take_bath", player_state, dungeon_state, location_state)
+          → ResolverRegistry.get("location.bath")
+            → location/bath.resolve(ActionContext) → ActionResult
+          ← ActionResult(new_player_state, messages=[…], dispatched_actions=[])
+        ← state applied; messages logged
+      ← (changed=True, msg)
+    ← refresh UI
 ```
 
-### Combat Cycle
+Sub-actions in `ActionResult.dispatched_actions` are chained recursively inside `ActionDispatcher.dispatch()`.
 
-```
-enter_combat action
-  → GameEngine.do_dungeon_action("enter_combat")
-  → CombatSystem.start_combat(enemy, player_hp, equipped_weapon, equipped_armor)
-  → Combat view shown
-
-Each attack round
-  → GameEngine.do_combat_action("attack", enemy)
-  → CombatSystem.attack(base_damage + buff_bonus)
-       → Player deals: base + weapon.stat_bonus.damage
-       → Enemy deals: roll − armor.stat_bonus.defense  (min 1)
-       → Weapon durability −1;  Armor durability −1
-       → If either breaks: auto-unequip + log warning
-  → BuffSystem.tick_turn_buffs()  — decrements turn-based buffs
-  → On enemy death: _award_combat_rewards()
-       → Gold from enemy.gold_min/gold_max
-       → Loot drawn from enemy.loot_table with enemy.loot_chance probability
-
-Player death
-  → CombatSystem sets player_dead = True
-  → GameEngine.end_combat(player_dead=True)
-  → ProfileManager.delete_profile(current_profile)  — file deleted from disk
-  → StateManager.init_player()  — in-memory state reset to defaults
-```
-
-### State Model
-
-Player state is a plain Python `dict` held by `StateManager`. It is never mutated in place — all action methods receive a state dict, return a new dict, and the manager replaces its internal copy. Dungeon state follows the same pattern.
-
-Key top-level fields:
-
-| Field | Type | Description |
-|---|---|---|
-| `hp` / `max_hp` | int | Current and maximum health |
-| `gold` | int | Current gold |
-| `level` | int | Player level (cosmetic currently) |
-| `inventory` | list[str] | Item IDs in the player's bag |
-| `equipped_weapon` | dict\|null | `{item_id, item, current_durability, max_durability}` |
-| `equipped_armor` | dict\|null | Same structure as weapon |
-| `buffs` | list[dict] | Active buff objects with `id`, `stat_mods`, `duration` |
-| `kills` | int | Total enemies defeated |
-| `times_died` | int | Total deaths (profile not deleted on this field — it resets) |
-| `year` | int | Current in-game year |
-| `tax_paid` | bool | Whether tax has been paid this year |
-
----
-
-## UI System
-
-`UIAssembler` is a data-driven layout engine. Each view is described by a JSON file in `data/ui/layouts/`. The assembler reads the file, instantiates the correct widget class from its component registry, applies theme colours from `data/ui/themes.json`, connects data bindings (dot-path expressions like `"location.description"`), and caches the resulting widget tree. On refresh, `DataBinder` walks the bindings and calls the appropriate widget update methods.
-
-### Dynamic Theming
-
-All UI colours, fonts, and padding values are fetched at runtime from the active theme via `app.ui.constants`. The `constants` module uses a `__getattr__` delegator to a `_ThemeConstants` instance that reads from `StyleManager.get_theme()` on every access. Theme changes apply immediately without restarting.
+### ActionContext
 
 ```python
-import app.ui.constants as const
-
-label = tk.Label(self, bg=const.CARD_BG, fg=const.TEXT_FG, font=const.FONT_BODY)
+@dataclass(frozen=True)
+class ActionContext:
+    player_state:   Dict
+    dungeon_state:  Optional[Dict]
+    location_state: Optional[Dict]   # current services.json entry
+    entity_id:      str              # "0" = player
+    quantity:       int
+    reference:      Any              # item_id, buff dict, slot name, …
+    action_id:      str
+    data_registry:  Any              # read-only DataRegistry
 ```
+
+### ActionResult
+
+```python
+@dataclass
+class ActionResult:
+    new_player_state:   Dict
+    new_dungeon_state:  Optional[Dict]
+    messages:           List[str]
+    dispatched_actions: List[Tuple[str, Dict]]   # (action_id, context_overrides)
+```
+
+### Entity ID Scheme
+
+| Prefix | Meaning | Example |
+|--------|---------|---------|
+| `"0"` | Player | `entity_id = "0"` |
+| `"n_<name_hash>"` | Named NPC | `"n_a3f7"` (future) |
+| `"e_<uuid>"` | Generated enemy instance | `"e_8b2c1d"` (future) |
 
 ---
 
-## Key Design Decisions
+## ResolverRegistry
 
-- **No game logic in UI classes.** Widgets and panels only render data and emit action ID strings via callbacks. No engine state is read directly from within a widget.
-- **No hardcoded content in Python.** All text, prices, item stats, enemy stats, location actions, buff definitions, and lore come from JSON. The engine is a rules interpreter; the data files are the game.
-- **Immutable-style state transitions.** State dicts are copied at the top of every action method (`state = dict(player_state)`); the original is never mutated. This keeps state transitions traceable and testable without mocking.
-- **Component layering.** Layer 1 widgets (`basic/`) have zero project imports. Layer 2 widgets (`complex/`) compose Layer 1 only. This prevents circular dependencies and keeps widgets portable.
-- **Centralised logging.** All significant events flow through `GameLogger` with structured categories (`system`, `info`, `data`, `warn`, `error`). Never use `print()` in engine or UI code.
-- **Parameterised action IDs.** Actions that require a target use a colon separator: `use_item:item_id`, `equip_item:item_id`, `sell_item:item_id`. The engine splits on `:` to extract parameters. This keeps the callback interface uniform — every action is a single string.
-- **Death is permanent.** `ProfileManager.delete_profile()` is called on player death. The engine then resets to defaults in memory. There is no save-scumming path.
+`app/logic/resolver_registry.py` — scans `app/logic/resolvers/` recursively on startup. Any `.py` file that is not an `__init__` and exports a callable `resolve` is registered automatically. The resolver name is derived from the file's path relative to `resolvers/`:
+
+```
+resolvers/location/bath.py  →  "location.bath"
+resolvers/combat/attack.py  →  "combat.attack"
+resolvers/heal_player.py    →  "heal_player"
+```
+
+No manual registration is required. Adding a new resolver is a file drop.
+
+---
+
+## State Management
+
+`app/logic/core/state.py` (`State`) is the single in-memory source of truth. The dispatcher never writes to disk. Only `ProfileMgr` touches the filesystem.
+
+---
+
+## Year Clock
+
+`YearClock` in `app/logic/core/year_clock.py` counts non-navigation actions. Every 30 actions it signals the engine to `dispatch("advance_year", {})`. The `advance_year` resolver checks `tax_paid`; if unpaid it returns an exile message and the engine deletes the profile and resets state.
+
+---
+
+## Shop Economy (Tier 4)
+
+Locations with a `shop_inventory` array in `data/city/services.json` display a shop panel in the city view. Clicking an item dispatches `buy_item:<item_id>`. The `shop.buy` resolver verifies the item is in `location_state["shop_inventory"]`, checks affordability, deducts gold, and adds the item. `shop.sell` verifies the item is in inventory and not equipped before awarding sell price (`value × sell_price_multiplier`).

@@ -1,14 +1,79 @@
-# Pursuit of Peace — Text-Based RPG  `v0.9.6`
+# Pursuit of Peace — Text-Based RPG  `v1.0.0`
 
-A single-player, turn-based text RPG built with Python and Tkinter. You play as a citizen of a walled city who must survive year-to-year by managing gold, exploring dungeons, equipping weapons and armour, using consumables, and paying taxes to avoid permanent exile.
+A single-player, turn-based text RPG built with Python and Tkinter. You play as a citizen of a walled city who must survive year-to-year — managing gold, equipping gear, exploring dungeons, and paying taxes to avoid permanent exile.
+
+Death is permanent. Exile is permanent. Every run counts.
+
+---
+
+## Features (v1.0.0)
+
+### Core Survival Loop
+- **Year system** — every 30 actions a year passes. Pay your taxes at City Hall or face permanent exile.
+- **Permanent death** — dying in the dungeon deletes your save file. No second chances.
+- **Roguelike identity** — each profile is a unique run. Losing a profile means starting fresh.
+
+### City & Economy (Tier 4)
+- **Buy items** at the Marketplace, Alchemy Hall, and Blacksmith's Street. Each location stocks different goods.
+- **Sell items** from your inventory for 40% of base value.
+- **Repair gear** at the Blacksmith — cost scales with damage taken.
+- **Pay taxes** at City Hall before year end.
+- **Rest** at the Tavern to restore full HP.
+- **Take a bath** at the Public Bath for a dungeon-run buff (+5 max HP).
+- **Go fishing** at the River for a chance to catch sellable fish.
+
+### Dungeon Exploration
+- Procedurally generated dungeons with variable room counts and depths.
+- Enemy encounters, item pickups, and room-by-room traversal.
+- Flee the dungeon at any time (one_run buffs expire on exit).
+
+### Combat (Tier 1–3)
+- Turn-based combat with enemy counter-attacks.
+- Weapon damage bonus + buff bonus + base roll determine your attack.
+- Armor absorbs incoming damage (minimum 1 always lands).
+- Durability decay: weapons and armor degrade per hit. Broken gear auto-unequips with a warning.
+- Use consumable items mid-combat without ending your turn.
+
+### Equipment System (Tier 3)
+- Two equipment slots: weapon and armor.
+- Equip from inventory; old item is returned to inventory automatically.
+- Stats shown in player panel and inventory with durability bars.
+
+### Consumables & Buffs (Tier 2)
+- Healing tonics, bandages, rations, strength draughts, antidotes.
+- Buff durations: `turns` (decrements per attack), `one_run` (expires on dungeon exit), `permanent`.
+- Buff summary visible in player panel at all times.
+
+### Data-Driven Architecture (Tier 4 — AAD)
+- Every action is defined in a JSON file under `data/actions/` — no hardcoded if/elif chains.
+- Resolvers auto-discovered at startup. Adding a new action = two files, zero engine edits.
+- Full audit trail: every dispatched action logs a `DATA` event with resolver and context.
 
 ---
 
 ## Requirements
 
 - Python 3.10 or higher
-- Tkinter (bundled with most Python distributions)
-- No third-party packages required to play
+- Tkinter (bundled with standard Python distributions)
+- No third-party packages required
+
+---
+
+## How to Run
+
+```
+python main.pyw
+```
+
+Debug mode (verbose dispatcher output):
+```
+python main.pyw --debug
+```
+
+Developer tools:
+```
+python DevTools.pyw
+```
 
 ---
 
@@ -20,109 +85,8 @@ A single-player, turn-based text RPG built with Python and Tkinter. You play as 
 
 ---
 
-## How to Run
+## For Developers & Modders
 
-From the project root directory:
+See `docs/CONTRIBUTING.md` for how to add new actions, shops, enemies, and items — most require no Python changes.
 
-```
-python main.pyw
-```
-
-Or double-click `main.pyw` on Windows if Python is associated with `.pyw` files. The `.pyw` extension suppresses the console window on Windows.
-
----
-
-## Game Overview
-
-### Core Loop
-
-1. You start at the City Gates each session.
-2. Navigate city locations to earn gold, sell loot, rest, and prepare for the dungeon.
-3. Descend into the dungeon to fight enemies, collect items, and earn gold.
-4. Equip weapons and armour from your inventory to improve combat performance.
-5. Use consumables (bandages, potions, antidotes) to stay alive.
-6. Pay your annual taxes at City Hall before year-end or face permanent exile.
-
-### City Locations
-
-| Location | What you can do |
-|---|---|
-| City Gates | Navigate to all other areas |
-| Tavern | Rest to restore full HP (costs gold); hear rumours |
-| Marketplace | Sell unwanted items for gold |
-| Alchemy Hall | Sell reagents and other goods |
-| Blacksmiths Street | Repair damaged weapons and armour |
-| City Hall | Pay annual taxes; check outstanding debt |
-| Public Bathhouse | Buy the Refreshed buff (+5 max HP for one dungeon run) |
-| The River | Go fishing — catch items you can sell |
-| Dungeon Entrance | Enter the dungeon |
-
-> **Note:** The Coliseum is present in the world but its events are not yet implemented.
-
-### The Dungeon
-
-- A randomly generated sequence of rooms (5–12 rooms per run).
-- Rooms contain an enemy, an item, or are empty.
-- Enemies scale in difficulty with depth. Deeper rooms spawn stronger enemies.
-- **Fight** an enemy to earn gold and a chance at loot drops.
-- **Flee** to exit the dungeon immediately without reward.
-- Clearing all rooms exits the dungeon and returns you to the city.
-
-### Combat
-
-Each combat round:
-- Your attack damage = base roll (4–8) + equipped weapon bonus + any active strength buffs.
-- Enemy damage received = enemy roll − equipped armour defence (minimum 1 damage always lands).
-- Weapon and armour **durability** decreases with each hit. Items break at 0 and must be repaired at the Blacksmith.
-
-During combat you can also **use consumable items** directly from your inventory without ending the round.
-
-### Equipment
-
-- Open **Inventory** to see your currently equipped weapon and armour, with a durability bar (`[████░░░░]`).
-- Click any weapon or armour in the list and press **Equip**. The previously equipped item returns to inventory.
-- Use **Unequip** buttons in the equipment summary to return items to your bag.
-- Repair damaged gear at the **Blacksmith**. Cost = missing durability points × repair rate.
-
-### Buffs & Debuffs
-
-Active effects are shown in the player sidebar under **Effects**. Examples:
-- `Refreshed (until exit)` — max HP +5 for the current dungeon run (from the Public Bath).
-- `Strength +3 (2 turns)` — damage bonus for the next 2 attack rounds (from Muscle Draught).
-
-### Taxes & Exile
-
-- One tax bill is due per in-game year (default: 100 gold).
-- Pay at **City Hall** before year-end.
-- If unpaid when the year rolls over, you are exiled — **game over, profile deleted**.
-
----
-
-## Profile System
-
-- On launch, a dialog lets you select an existing profile or create a new one.
-- Profiles are saved as JSON files in `data/player/profiles/`.
-- Use **File → Save Game** to save manually at any time.
-- Use **File → Load Game** to switch profiles mid-session.
-- **Death is permanent.** If you are killed in combat, your profile file is deleted.
-
----
-
-## Project Layout
-
-```
-main.pyw                    Entry point — run this to play
-DevTools.pyw                Developer utilities (audit, build, pycache cleaner)
-app/                        Application source code
-data/                       All game data (JSON — fully moddable)
-docs/                       Project documentation
-logs/                       Session log files (auto-created at runtime)
-```
-
-See `docs/ARCHITECTURE.md` for a full breakdown of the source tree.
-
----
-
-## Modding
-
-All game content lives in JSON files under `data/`. You can add enemies, items, lore, and locations without touching any Python code. See `docs/CONTRIBUTING.md` for step-by-step guides.
+See `docs/ARCHITECTURE.md` for a full description of the AAD system and data flow.

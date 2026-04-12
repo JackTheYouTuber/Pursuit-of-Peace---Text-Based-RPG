@@ -1,0 +1,7 @@
+{
+  "id": "go_blacksmiths_street",
+  "resolver": "navigation.go",
+  "reference": "blacksmiths_street",
+  "context_requirements": ["current_location_id"],
+  "description": "Navigate to blacksmiths_street"
+}

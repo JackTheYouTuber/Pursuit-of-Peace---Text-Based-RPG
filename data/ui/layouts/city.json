@@ -3,7 +3,8 @@
   "name": "city_panel",
   "data": {
     "description_source": "location.description",
-    "actions_source": "location.actions"
+    "actions_source":     "location.actions",
+    "shop_source":        "shop.items"
   },
   "on_action": "location_action"
 }

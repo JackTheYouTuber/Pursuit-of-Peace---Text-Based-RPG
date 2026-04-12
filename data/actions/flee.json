@@ -1,0 +1,6 @@
+{
+  "id": "flee",
+  "resolver": "combat.flee",
+  "context_requirements": [],
+  "description": "Flee from combat and return to the city."
+}

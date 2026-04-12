@@ -1,0 +1,7 @@
+{
+  "id": "go_tavern",
+  "resolver": "navigation.go",
+  "reference": "tavern",
+  "context_requirements": ["current_location_id"],
+  "description": "Navigate to tavern"
+}

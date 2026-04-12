@@ -1,0 +1,6 @@
+{
+  "id": "add_gold",
+  "resolver": "add_gold",
+  "context_requirements": ["quantity"],
+  "description": "Give gold to the player."
+}

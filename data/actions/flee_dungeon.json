@@ -1,0 +1,6 @@
+{
+  "id": "flee_dungeon",
+  "resolver": "dungeon.flee",
+  "context_requirements": ["dungeon_state"],
+  "description": "Flee the dungeon entirely and return to the city entrance."
+}

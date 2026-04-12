@@ -1,0 +1,6 @@
+{
+  "id": "enter_combat",
+  "resolver": "dungeon.enter_combat",
+  "context_requirements": ["dungeon_state"],
+  "description": "Start combat with the enemy in the current dungeon room."
+}

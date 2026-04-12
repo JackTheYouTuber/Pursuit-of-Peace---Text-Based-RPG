@@ -1,0 +1,6 @@
+{
+  "id": "sell_item",
+  "resolver": "shop.sell",
+  "context_requirements": ["reference"],
+  "description": "Sell an item from inventory. Receive sell_price_multiplier of base value."
+}

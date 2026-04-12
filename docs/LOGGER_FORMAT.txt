@@ -1,45 +1,71 @@
-PURSUIT OF PEACE — SESSION LOG FORMAT
-======================================
+PURSUIT OF PEACE — SESSION LOG FORMAT  v1.0.0
+==============================================
 
-Log files are written to logs/session_<YYYYMMDD_HHMMSS>.log
+Log files are written to: logs/session_<YYYYMMDD_HHMMSS>.log
 One file is created per game session.
 
 Each line is a structured log entry with the following tab-separated format:
 
   [TIMESTAMP]  [LEVEL]  [MESSAGE]  [CONTEXT?]
 
-Example entries:
+Examples:
   2026-04-08 14:08:55  SYSTEM   App initialised.
   2026-04-08 14:09:01  INFO     Player navigated to: tavern
+  2026-04-08 14:09:04  DATA     dispatch:rest | {"resolver": "location.rest", "entity_id": "0"}
   2026-04-08 14:09:04  DATA     rest | {"gold_spent": 10}
+  2026-04-08 14:09:10  DATA     dispatch:attack | {"resolver": "combat.attack", "entity_id": "0"}
   2026-04-08 14:09:10  DATA     combat_start | enemy_bloat_rat_01
-  2026-04-08 14:09:12  DATA     combat_attack | {"damage": 6, "remaining_hp": 4}
-  2026-04-08 14:09:15  DATA     combat_flee
-  2026-04-08 14:09:20  WARN     Lore key not found: 'lore_room_empty_01'  [DungeonManager.get_room_lore_text]
-  2026-04-08 14:09:30  ERROR    Failed to load profile Jack: Missing player_state in profile
+  2026-04-08 14:09:12  DATA     dispatch:award_loot | {"resolver": "combat.award_loot", "entity_id": "0"}
+  2026-04-08 14:09:12  DATA     combat_victory | {"enemy": "enemy_bloat_rat_01"}
+  2026-04-08 14:09:20  DATA     dispatch:advance_year | {"resolver": "location.advance_year", "entity_id": "0"}
+  2026-04-08 14:09:20  DATA     year_rollover | {"new_year": 2}
+  2026-04-08 14:09:25  DATA     exile_triggered | {"year": 3}
+  2026-04-08 14:09:25  INFO     Profile 'Jack' deleted (exile).
+  2026-04-08 14:09:30  WARN     Action 'unknown_action' references unavailable resolver 'foo.bar' — skipped.
+  2026-04-08 14:09:35  ERROR    Resolver 'location.pray' raised: AttributeError: 'NoneType'...
 
 
 LOG LEVELS
 ----------
 
-  SYSTEM  — Application lifecycle events (startup, shutdown, data load).
-  INFO    — Player navigation and significant game transitions.
-  DATA    — Game event data (gold spent, items taken, combat results).
-            Format: event_id | payload (JSON or plain string)
-  WARN    — Recoverable problems (missing file, unknown key, fallback used).
-            May include a [context] suffix showing the function name.
-  ERROR   — Failures that may degrade gameplay (failed saves, corrupt data).
+  SYSTEM  — Application lifecycle events (startup, shutdown, data load, profile events).
+
+  INFO    — Player navigation, significant game transitions, profile creation/deletion.
+
+  DATA    — Game event data. Two classes of DATA events in v1.0.0:
+
+            1. Dispatcher events (new in v1.0.0):
+               Format: dispatch:<action_id> | {"resolver": "<resolver>", "entity_id": "<id>"}
+               Emitted BEFORE the resolver runs. Every dispatched action produces one.
+
+            2. Resolver events (produced by individual resolvers or managers):
+               Format: event_id | payload (JSON dict or plain string)
+               Examples: rest, bath, combat_start, combat_attack, combat_victory,
+                         player_death, year_rollover, exile_triggered, equip, repair, buy, sell.
+
+  WARN    — Recoverable problems: missing action file, unavailable resolver, unknown location key,
+            malformed action JSON. Game continues; the problematic action is skipped.
+            May include [context] suffix showing the module/function name.
+
+  ERROR   — Unexpected resolver exceptions. Full traceback follows on subsequent lines.
+            Game attempts to continue with unchanged state.
 
 
-AUDIT TOOL
-----------
+AAD DISPATCH TRACE (--debug mode)
+----------------------------------
 
-Use audit.pyw to browse log files with a GUI:
+When launched with  python main.pyw --debug  the dispatcher also prints to stdout:
 
-  python audit.pyw
+  [DISPATCH] rest  →  location.rest
+    → Messages: ["You rest. HP fully restored. (10g)"]
+  [DISPATCH] advance_year  →  location.advance_year
+    → Messages: ["A new year begins. Year 2 tax is now due."]
 
-The audit tool supports:
-  - Selecting a log file from the session list.
-  - Filtering by log level.
-  - Searching by keyword.
-  - Viewing raw log text.
+This output does NOT appear in the log file — stdout only.
+
+
+CONTEXT SUFFIX FORMAT
+---------------------
+
+WARN lines may include a bracketed context suffix:
+  WARN  Lore key not found: 'lore_room_empty_01'  [DungeonMgr.room_lore]

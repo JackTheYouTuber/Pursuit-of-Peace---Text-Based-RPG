@@ -1,0 +1,6 @@
+{
+  "id": "fishing_tick",
+  "resolver": "fishing.fishing_tick",
+  "context_requirements": [],
+  "description": "[Stub v1.0.0] Tick the fishing loop. 60% chance to catch a random fish."
+}

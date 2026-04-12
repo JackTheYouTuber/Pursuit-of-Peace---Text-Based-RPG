@@ -1,0 +1,7 @@
+{
+  "id": "pay_taxes",
+  "resolver": "location.pay_taxes",
+  "cost": {"gold": 100},
+  "context_requirements": ["current_location_id"],
+  "description": "Pay annual city tax at the City Hall."
+}

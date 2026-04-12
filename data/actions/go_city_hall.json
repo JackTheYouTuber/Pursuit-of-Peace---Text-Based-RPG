@@ -1,0 +1,7 @@
+{
+  "id": "go_city_hall",
+  "resolver": "navigation.go",
+  "reference": "city_hall",
+  "context_requirements": ["current_location_id"],
+  "description": "Navigate to city_hall"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "go_fishing",
+  "resolver": "location.fish",
+  "context_requirements": ["current_location_id"],
+  "description": "Cast a line at the river. Chance to catch a fish item."
+}

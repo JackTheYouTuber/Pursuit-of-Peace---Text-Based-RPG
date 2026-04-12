@@ -1,0 +1,6 @@
+{
+  "id": "advance_year",
+  "resolver": "location.advance_year",
+  "context_requirements": [],
+  "description": "Advance the in-game year. Check taxes; exile player if unpaid."
+}

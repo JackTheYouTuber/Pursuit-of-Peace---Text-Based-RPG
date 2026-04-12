@@ -1,0 +1,6 @@
+{
+  "id": "award_loot",
+  "resolver": "combat.award_loot",
+  "context_requirements": ["enemy_id"],
+  "description": "Roll and award gold and item drops after defeating an enemy."
+}

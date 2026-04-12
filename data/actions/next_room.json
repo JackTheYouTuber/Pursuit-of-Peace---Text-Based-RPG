@@ -1,0 +1,6 @@
+{
+  "id": "next_room",
+  "resolver": "dungeon.next_room",
+  "context_requirements": ["dungeon_state"],
+  "description": "Move to the next room in the dungeon."
+}

@@ -1,0 +1,6 @@
+{
+  "id": "heal_player",
+  "resolver": "heal_player",
+  "context_requirements": ["quantity"],
+  "description": "Restore HP to the player. Capped at effective max HP."
+}

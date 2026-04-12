@@ -1,0 +1,5 @@
+[
+  {"id": "item_fish_common_01", "name": "River Perch",     "weight": 50},
+  {"id": "item_fish_bony_01",   "name": "Bony Grey Carp",  "weight": 30},
+  {"id": "item_fish_bloated_01","name": "Bloated Mudfish",  "weight": 20}
+]

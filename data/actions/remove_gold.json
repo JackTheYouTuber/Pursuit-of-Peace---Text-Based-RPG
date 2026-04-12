@@ -1,0 +1,6 @@
+{
+  "id": "remove_gold",
+  "resolver": "remove_gold",
+  "context_requirements": ["quantity"],
+  "description": "Deduct gold from the player."
+}

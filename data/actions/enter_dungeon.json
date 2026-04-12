@@ -1,0 +1,6 @@
+{
+  "id": "enter_dungeon",
+  "resolver": "location.enter_dungeon",
+  "context_requirements": ["current_location_id"],
+  "description": "Descend into the dungeon from the dungeon entrance."
+}

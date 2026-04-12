@@ -973,6 +973,227 @@ class DevToolsApp:
         self.build_frame = BuildTool(self.notebook, self.root)
         self.notebook.add(self.build_frame, text="Build Tool")
 
+        # Tab 4: Validate Actions (AAD)
+        self.validate_frame = ValidateActionsFrame(self.note
+
+# ----------------------------------------------------------------------
+# Tab 4 — Validate Actions
+# ----------------------------------------------------------------------
+class ValidateActionsFrame(ttk.Frame):
+    """Validates every data/actions/*.json against the action JSON schema."""
+
+    def __init__(self, parent: tk.Widget) -> None:
+        super().__init__(parent)
+        ttk.Label(self, text="Validate Action JSON Files",
+                  font=("Segoe UI", 12, "bold")).pack(pady=(10, 4))
+        ttk.Label(self, text=(
+            "Reads every file in data/actions/ and checks for required fields "
+            "(id, resolver) and correct types."
+        ), wraplength=700, justify=tk.LEFT).pack(padx=10, anchor=tk.W)
+
+        btn_frame = ttk.Frame(self)
+        btn_frame.pack(pady=6)
+        ttk.Button(btn_frame, text="Run Validation",
+                   command=self._run).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_frame, text="Clear",
+                   command=self._clear).pack(side=tk.LEFT, padx=4)
+
+        self._log = scrolledtext.ScrolledText(self, height=28, state=tk.DISABLED,
+                                               bg="#1e1e2e", fg="#cdd6f4",
+                                               font=("Consolas", 9))
+        self._log.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
+
+    def _write(self, text: str, tag: str = "") -> None:
+        self._log.configure(state=tk.NORMAL)
+        self._log.insert(tk.END, text + "\n", tag)
+        self._log.see(tk.END)
+        self._log.configure(state=tk.DISABLED)
+        self._log.tag_config("ok",   foreground="#a6e3a1")
+        self._log.tag_config("warn", foreground="#f9e2af")
+        self._log.tag_config("err",  foreground="#f38ba8")
+        self._log.tag_config("head", foreground="#89b4fa")
+
+    def _clear(self) -> None:
+        self._log.configure(state=tk.NORMAL)
+        self._log.delete("1.0", tk.END)
+        self._log.configure(state=tk.DISABLED)
+
+    def _run(self) -> None:
+        import json, pathlib
+        self._clear()
+        actions_dir = pathlib.Path("data/actions")
+        if not actions_dir.exists():
+            self._write("ERROR: data/actions/ directory not found.", "err")
+            return
+
+        files = sorted(actions_dir.rglob("*.json"))
+        self._write(f"Found {len(files)} action file(s).\n", "head")
+
+        ok = err = 0
+        for fp in files:
+            try:
+                with open(fp) as f:
+                    data = json.load(f)
+            except Exception as e:
+                self._write(f"  [PARSE ERROR] {fp.name}: {e}", "err")
+                err += 1
+                continue
+
+            missing = {"id", "resolver"} - set(data.keys())
+            if missing:
+                self._write(f"  [MISSING] {fp.name}: missing fields: {missing}", "err")
+                err += 1
+                continue
+
+            type_errors = []
+            if not isinstance(data.get("id"), str):
+                type_errors.append("'id' must be a string")
+            if not isinstance(data.get("resolver"), str):
+                type_errors.append("'resolver' must be a string")
+            if "cost" in data and not isinstance(data["cost"], dict):
+                type_errors.append("'cost' must be an object")
+            if "effects" in data and not isinstance(data["effects"], list):
+                type_errors.append("'effects' must be an array")
+
+            if type_errors:
+                self._write(f"  [TYPE ERROR] {fp.name}: {'; '.join(type_errors)}", "err")
+                err += 1
+            else:
+                self._write(
+                    f"  [OK] {fp.name}  (id={data['id']}, resolver={data['resolver']})", "ok")
+                ok += 1
+
+        self._write(f"\n─── Result: {ok} OK, {err} error(s). ───", "head")
+
+
+# ----------------------------------------------------------------------
+# Tab 5 — Generate Resolver
+# ----------------------------------------------------------------------
+class GenerateResolverFrame(ttk.Frame):
+    """Scaffolds a new action JSON and stub resolver Python file."""
+
+    def __init__(self, parent: tk.Widget) -> None:
+        super().__init__(parent)
+        ttk.Label(self, text="Generate New Action + Resolver Stub",
+                  font=("Segoe UI", 12, "bold")).pack(pady=(10, 4))
+        ttk.Label(self, text=(
+            "Enter an action ID and resolver path. The tool creates the action JSON "
+            "and a stub resolver Python file automatically."
+        ), wraplength=700, justify=tk.LEFT).pack(padx=10, anchor=tk.W)
+
+        form = ttk.Frame(self)
+        form.pack(padx=16, pady=8, fill=tk.X)
+
+        ttk.Label(form, text="Action ID:").grid(row=0, column=0, sticky=tk.W, pady=3)
+        self._action_id = ttk.Entry(form, width=40)
+        self._action_id.insert(0, "pray_at_shrine")
+        self._action_id.grid(row=0, column=1, sticky=tk.W, padx=8)
+        ttk.Label(form, text="e.g. pray_at_shrine",
+                  foreground="#6c7086").grid(row=0, column=2, sticky=tk.W)
+
+        ttk.Label(form, text="Resolver:").grid(row=1, column=0, sticky=tk.W, pady=3)
+        self._resolver = ttk.Entry(form, width=40)
+        self._resolver.insert(0, "location.pray")
+        self._resolver.grid(row=1, column=1, sticky=tk.W, padx=8)
+        ttk.Label(form, text="e.g. location.pray  →  resolvers/location/pray.py",
+                  foreground="#6c7086").grid(row=1, column=2, sticky=tk.W)
+
+        ttk.Label(form, text="Description:").grid(row=2, column=0, sticky=tk.W, pady=3)
+        self._desc = ttk.Entry(form, width=60)
+        self._desc.insert(0, "Stub action — fill in resolver logic.")
+        self._desc.grid(row=2, column=1, columnspan=2, sticky=tk.W, padx=8)
+
+        ttk.Button(self, text="Generate Files", command=self._generate).pack(pady=6)
+
+        self._log = scrolledtext.ScrolledText(self, height=22, state=tk.DISABLED,
+                                               bg="#1e1e2e", fg="#cdd6f4",
+                                               font=("Consolas", 9))
+        self._log.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
+
+    def _write(self, text: str, tag: str = "") -> None:
+        self._log.configure(state=tk.NORMAL)
+        self._log.insert(tk.END, text + "\n", tag)
+        self._log.see(tk.END)
+        self._log.configure(state=tk.DISABLED)
+        self._log.tag_config("ok",   foreground="#a6e3a1")
+        self._log.tag_config("err",  foreground="#f38ba8")
+        self._log.tag_config("head", foreground="#89b4fa")
+
+    def _generate(self) -> None:
+        import json, pathlib, textwrap
+        action_id   = self._action_id.get().strip()
+        resolver    = self._resolver.get().strip()
+        description = self._desc.get().strip()
+
+        self._log.configure(state=tk.NORMAL)
+        self._log.delete("1.0", tk.END)
+        self._log.configure(state=tk.DISABLED)
+
+        if not action_id or not resolver:
+            self._write("ERROR: Action ID and Resolver are required.", "err")
+            return
+        if " " in action_id or " " in resolver:
+            self._write("ERROR: No spaces allowed in Action ID or Resolver.", "err")
+            return
+
+        # Create action JSON
+        actions_dir = pathlib.Path("data/actions")
+        actions_dir.mkdir(parents=True, exist_ok=True)
+        json_path = actions_dir / f"{action_id}.json"
+        if json_path.exists():
+            self._write(f"WARN: {json_path} already exists — skipping JSON.", "err")
+        else:
+            payload = {
+                "id": action_id, "resolver": resolver,
+                "cost": {}, "effects": [], "context_requirements": [],
+                "description": description or "Stub action."
+            }
+            with open(json_path, "w") as f:
+                json.dump(payload, f, indent=2)
+            self._write(f"[CREATED] {json_path}", "ok")
+
+        # Create resolver stub
+        parts = resolver.split(".")
+        resolver_dir = pathlib.Path("app/logic/resolvers").joinpath(*parts[:-1])
+        resolver_dir.mkdir(parents=True, exist_ok=True)
+        init = resolver_dir / "__init__.py"
+        if not init.exists():
+            init.touch()
+        py_path = resolver_dir / f"{parts[-1]}.py"
+        if py_path.exists():
+            self._write(f"WARN: {py_path} already exists — skipping Python stub.", "err")
+        else:
+            stub = textwrap.dedent(f"""
+                \"\"\"
+                {resolver} — stub resolver generated by DevTools.
+                Action: {action_id}
+                \"\"\"
+                from app.logic.action_types import ActionContext, ActionResult
+
+
+                def resolve(ctx: ActionContext) -> ActionResult:
+                    ps = dict(ctx.player_state)
+                    # TODO: implement {action_id} logic here
+                    return ActionResult(
+                        new_player_state  = ps,
+                        new_dungeon_state = ctx.dungeon_state,
+                        messages          = ["[Stub] {action_id} not yet implemented."],
+                    )
+            """).lstrip()
+            py_path.write_text(stub)
+            self._write(f"[CREATED] {py_path}", "ok")
+
+        self._write(
+            "\nDone. Restart the game/dispatcher to auto-discover the new resolver.",
+            "head")
+
+book)
+        self.notebook.add(self.validate_frame, text="Validate Actions")
+
+        # Tab 5: Generate Resolver (AAD)
+        self.gen_frame = GenerateResolverFrame(self.notebook)
+        self.notebook.add(self.gen_frame, text="Generate Resolver")
+
     def run(self) -> None:
         """Start the Tkinter main loop."""
         self.root.mainloop()

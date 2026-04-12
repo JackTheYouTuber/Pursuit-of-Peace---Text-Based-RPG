@@ -1,0 +1,7 @@
+{
+  "id": "go_the_river",
+  "resolver": "navigation.go",
+  "reference": "the_river",
+  "context_requirements": ["current_location_id"],
+  "description": "Navigate to the_river"
+}

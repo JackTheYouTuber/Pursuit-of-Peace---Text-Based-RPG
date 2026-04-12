@@ -1,0 +1,6 @@
+{
+  "id": "tick_buffs",
+  "resolver": "tick_buffs",
+  "context_requirements": [],
+  "description": "Decrement turn-based buffs by 1 tick. Remove expired buffs."
+}

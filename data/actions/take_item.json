@@ -1,0 +1,6 @@
+{
+  "id": "take_item",
+  "resolver": "dungeon.take_item",
+  "context_requirements": ["dungeon_state"],
+  "description": "Pick up the item present in the current dungeon room."
+}

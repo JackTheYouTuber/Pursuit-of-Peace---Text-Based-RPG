@@ -1,0 +1,11 @@
+{
+  "id": "take_bath",
+  "resolver": "location.bath",
+  "cost": {"gold": 15},
+  "effects": [
+    {"type": "heal_player", "entity_id": "0", "quantity": 5},
+    {"type": "add_buff",    "entity_id": "0", "reference": "buff_refreshed"}
+  ],
+  "context_requirements": ["current_location_id"],
+  "description": "Soak in the public bath. Gain Refreshed buff for this dungeon run."
+}

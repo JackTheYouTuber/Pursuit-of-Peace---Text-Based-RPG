@@ -1,0 +1,6 @@
+{
+  "id": "add_item",
+  "resolver": "add_item",
+  "context_requirements": ["reference"],
+  "description": "Add one item to the player's inventory."
+}

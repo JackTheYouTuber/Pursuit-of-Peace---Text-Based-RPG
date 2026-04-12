@@ -1,0 +1,6 @@
+{
+  "id": "remove_item",
+  "resolver": "remove_item",
+  "context_requirements": ["reference"],
+  "description": "Remove one item from the player's inventory."
+}

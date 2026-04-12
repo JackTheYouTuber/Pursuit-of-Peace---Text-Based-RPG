@@ -1,0 +1,6 @@
+{
+  "id": "view_debt",
+  "resolver": "location.view_debt",
+  "context_requirements": [],
+  "description": "Check outstanding tax balance."
+}

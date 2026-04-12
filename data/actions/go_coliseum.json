@@ -1,0 +1,7 @@
+{
+  "id": "go_coliseum",
+  "resolver": "navigation.go",
+  "reference": "coliseum",
+  "context_requirements": ["current_location_id"],
+  "description": "Navigate to coliseum"
+}
