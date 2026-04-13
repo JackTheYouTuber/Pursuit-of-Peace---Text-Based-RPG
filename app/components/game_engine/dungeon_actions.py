@@ -1,5 +1,5 @@
 # app/components/game_engine/dungeon_actions.py
-from typing import Dict, Tuple, Optional, Any
+from typing import Dict, Tuple
 
 class DungeonActions:
     """Handle dungeon exploration actions: take item, next room, exit."""

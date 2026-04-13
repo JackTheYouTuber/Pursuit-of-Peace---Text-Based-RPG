@@ -9,7 +9,7 @@ Tier 3: equip_item, unequip_item, repair_equipment.
 Tier 4: buy_item, sell_item.
 """
 import random
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, Optional
 
 from app.components.game_engine.effect_resolver import EffectResolver
 from app.components.game_engine.buff_system import BuffSystem
