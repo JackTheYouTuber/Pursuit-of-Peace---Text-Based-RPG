@@ -1,10 +1,6 @@
-# Known Issues — Pursuit of Peace  v1.0.0
+# Known Issues — Pursuit of Peace  v1.0.0-stable
 
-Active bugs and limitations in the current release. Issues resolved in v1.0.0 have been removed; see BUGFIXES.md for the full history.
-
----
-
-## Active Issues
+Active bugs and limitations in the current release. See BUGFIXES.md for resolved issues.
 
 ---
 
@@ -13,28 +9,22 @@ Active bugs and limitations in the current release. Issues resolved in v1.0.0 ha
 **Location:** `data/city/services.json` → `coliseum`
 **Priority:** Low
 
-**Description:**
-The Coliseum location is accessible from the city entrance but contains only a `go_city` navigation button. No combat, leaderboard, or event logic exists.
-
-**Expected Behaviour:**
-Arena fights, a wave-survival mode, or at minimum a placeholder description explaining it is under construction.
+The Coliseum is accessible from the city entrance but contains only a `go_city` navigation button. No combat, leaderboard, or event logic exists.
 
 **Workaround:** None. The location is visually inert.
+**Planned:** v1.1.0 (GAP-104).
 
 ---
 
-### ISSUE-002 — Fishing Action Uses go_fishing (Non-AAD Path)
+### ISSUE-002 — Fishing Is Instant (Mini-Loop Not Active)
 
-**Location:** `app/logic/core/engine.py`, `data/city/services.json`
+**Location:** `app/logic/resolvers/location/fish.py`
 **Priority:** Low
 
-**Description:**
-`go_fishing` is dispatched through the AAD resolver `location.fish`, which immediately picks a random fish. The full fishing mini-loop (`cast_line` + real-time `fishing_tick`) is scaffolded but not yet active. The current behaviour is instant — no wait, no feedback.
-
-**Expected Behaviour (v1.1.0):**
-Player casts line, waits ~10 seconds, result announced.
+`go_fishing` dispatches through the AAD resolver `location.fish`, which immediately picks a random fish. The full fishing mini-loop (`cast_line` + real-time `fishing_tick`) is scaffolded but not yet active.
 
 **Workaround:** Current instant-catch behaviour is functional; items are awarded correctly.
+**Planned:** v1.1.0 (GAP-101).
 
 ---
 
@@ -43,38 +33,28 @@ Player casts line, waits ~10 seconds, result announced.
 **Location:** `app/logic/core/state.py`, `data/player/defaults.json`
 **Priority:** Low
 
-**Description:**
-If a saved profile's `current_location_id` references a location not present in `services.json` (e.g. after a services.json update), the engine silently falls back to an empty action list. The player sees a blank city panel with no buttons.
-
-**Expected Behaviour:**
-Profiles with unknown location IDs should be reset to `city_entrance` on load with a logged warning.
+If a saved profile's `current_location_id` references a location not in `services.json` (e.g. after a modded data update), the engine silently returns an empty action list. The player sees a blank city panel.
 
 **Workaround:** Manually edit the profile JSON to set `"current_location_id": "city_entrance"`.
 
 ---
 
-### ISSUE-004 — Sell Button Available on Misc Items With No Sale Value
+### ISSUE-004 — Misc Items With `value: 0` Show Sell Button
 
 **Location:** `app/ui/core/game_actions.py` → `on_inventory_select`
 **Priority:** Low
 
-**Description:**
-Misc items (bone shards, reagents, fish) show a Sell button in the inventory panel. Selling works correctly (awards 40% of `value`), but items with `value: 0` sell for 1g (the `max(1, ...)` floor). This may confuse players who expect junk items to be worthless.
+Misc items with `value: 0` (junk drops) display a Sell button and sell for the 1g floor price. This may confuse players who expect junk to be unsellable.
 
-**Expected Behaviour:**
-Items with `value: 0` should not show a Sell button, or the sell price display should clearly show `"Junk — 1g"`.
-
-**Workaround:** None visible; items sell for 1g floor correctly.
+**Workaround:** None visible. Items correctly sell for 1g.
 
 ---
 
-### ISSUE-005 — DevTools Audit Does Not Simulate Combat
+### ISSUE-005 — Audit Tool Does Not Simulate Combat
 
-**Location:** `DevTools.pyw` → Audit tab
+**Location:** `DevTools.pyw` → Audit Tool tab
 **Priority:** Low
 
-**Description:**
-The headless audit loop generates random city and dungeon actions but does not enter the combat state machine. Combat bugs (player death path, loot drop, durability decay) cannot be caught by the audit tool in its current form.
+The headless audit loop generates random city and dungeon actions but does not enter the combat state machine. Combat-specific bugs (player death, loot, durability decay) cannot be caught by the audit tool.
 
-**Expected Behaviour:**
-Audit should include a combat simulation path that enters, resolves, and exits combat in headless mode.
+**Workaround:** Test combat paths manually or by reading the combat resolver code.
