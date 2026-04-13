@@ -1,6 +1,8 @@
 import json
 import os
 
+from app.paths import data_path
+
 
 class DataLoader:
     """Central JSON loader and in-memory data cache."""
@@ -58,39 +60,40 @@ class DataLoader:
     # ------------------------------------------------------------------
 
     def _load_all(self):
-        base = "data"
+        def p(*parts):
+            return str(data_path(*parts))
 
         self._locations = self.safe_load_json(
-            os.path.join(base, "city", "locations.json"), []
+            p("city", "locations.json"), []
         )
         self._services = self.safe_load_json(
-            os.path.join(base, "city", "services.json"), {}
+            p("city", "services.json"), {}
         )
         self._dungeon_config = self.safe_load_json(
-            os.path.join(base, "dungeon", "config.json"),
+            p("dungeon", "config.json"),
             {"min_rooms": 5, "max_rooms": 10, "max_depth": 5},
         )
         self._room_templates = self.safe_load_json(
-            os.path.join(base, "dungeon", "rooms", "room_templates.json"), []
+            p("dungeon", "rooms", "room_templates.json"), []
         )
         self._enemies = self.safe_load_json(
-            os.path.join(base, "dungeon", "enemies", "enemies.json"), []
+            p("dungeon", "enemies", "enemies.json"), []
         )
         self._items = self.safe_load_json(
-            os.path.join(base, "dungeon", "items", "items.json"), []
+            p("dungeon", "items", "items.json"), []
         )
         self._prices = self.safe_load_json(
-            os.path.join(base, "economy", "prices.json"),
+            p("economy", "prices.json"),
             {"rest": 10, "bath": 15, "tax": 100, "repair_per_point": 5},
         )
         self._inventory_templates = self.safe_load_json(
-            os.path.join(base, "economy", "inventory_templates.json"), []
+            p("economy", "inventory_templates.json"), []
         )
         self._events = self.safe_load_json(
-            os.path.join(base, "events", "events.json"), []
+            p("events", "events.json"), []
         )
         self._player_defaults = self.safe_load_json(
-            os.path.join(base, "player", "defaults.json"),
+            p("player", "defaults.json"),
             {
                 "hp": 20,
                 "max_hp": 20,
@@ -114,7 +117,7 @@ class DataLoader:
         """Load lore for a specific location key (e.g. 'tavern' or 'global')."""
         if location in self._lore_cache:
             return self._lore_cache[location]
-        path = os.path.join("data", "lore", f"{location}.json")
+        path = str(data_path("lore", f"{location}.json"))
         entries = self.safe_load_json(path, [])
         self._lore_cache[location] = entries
         return entries

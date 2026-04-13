@@ -8,7 +8,7 @@ Tier 3: equipment slots wired into combat, durability, repair.
 Tier 4: buy/sell items.
 """
 import random
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from app.components.game_engine.state_manager import StateManager
 from app.components.game_engine.combat_system import CombatSystem

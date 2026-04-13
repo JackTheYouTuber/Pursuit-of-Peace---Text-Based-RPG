@@ -1,14 +1,17 @@
 import json
 import os
-import shutil
 from datetime import datetime
 from typing import Dict, List, Optional
+
+from app.paths import data_path
 
 
 class ProfileManager:
     """Manage player profiles stored as JSON files in data/player/profiles/"""
 
-    PROFILES_DIR = os.path.join("data", "player", "profiles")
+    @property
+    def PROFILES_DIR(self) -> str:
+        return str(data_path("player", "profiles"))
 
     def __init__(self, logger=None):
         self._logger = logger
