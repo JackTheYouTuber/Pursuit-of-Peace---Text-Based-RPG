@@ -2,17 +2,22 @@
 import json, os
 from typing import Dict, List, Optional
 
+from app.paths import data_path
+
 
 class ItemLoader:
-    _PATH = os.path.join("data", "dungeon", "items", "items.json")
+    @property
+    def _PATH(self) -> str:
+        return str(data_path("dungeon", "items", "items.json"))
 
     def __init__(self):
         self._items: List[Dict] = self._load()
 
     def _load(self) -> List[Dict]:
-        if not os.path.exists(self._PATH):
+        path = self._PATH
+        if not os.path.exists(path):
             return []
-        with open(self._PATH, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     def get(self, item_id: str) -> Optional[Dict]:

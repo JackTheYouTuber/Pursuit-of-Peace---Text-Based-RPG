@@ -2,17 +2,22 @@
 import json, os
 from typing import Dict, List, Optional
 
+from app.paths import data_path
+
 
 class EnemyLoader:
-    _PATH = os.path.join("data", "dungeon", "enemies", "enemies.json")
+    @property
+    def _PATH(self) -> str:
+        return str(data_path("dungeon", "enemies", "enemies.json"))
 
     def __init__(self):
         self._enemies: List[Dict] = self._load()
 
     def _load(self) -> List[Dict]:
-        if not os.path.exists(self._PATH):
+        path = self._PATH
+        if not os.path.exists(path):
             return []
-        with open(self._PATH, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     def get(self, enemy_id: str) -> Optional[Dict]:

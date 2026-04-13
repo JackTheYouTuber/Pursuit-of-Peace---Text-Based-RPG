@@ -3,9 +3,13 @@ import json, os
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from app.paths import data_path
+
 
 class ProfileMgr:
-    _DIR = os.path.join("data", "player", "profiles")
+    @property
+    def _DIR(self) -> str:
+        return str(data_path("player", "profiles"))
 
     def __init__(self):
         os.makedirs(self._DIR, exist_ok=True)

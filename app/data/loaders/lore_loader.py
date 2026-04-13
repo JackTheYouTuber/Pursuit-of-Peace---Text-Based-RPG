@@ -2,9 +2,13 @@
 import json, os
 from typing import Dict, List
 
+from app.paths import data_path
+
 
 class LoreLoader:
-    _DIR = os.path.join("data", "lore")
+    @property
+    def _DIR(self) -> str:
+        return str(data_path("lore"))
 
     def __init__(self):
         self._cache: Dict[str, List[Dict]] = {}

@@ -1,6 +1,6 @@
 """Generates dungeon runs from config and templates. One job: produce dungeon state dicts."""
 import random
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 
 class DungeonGen:
