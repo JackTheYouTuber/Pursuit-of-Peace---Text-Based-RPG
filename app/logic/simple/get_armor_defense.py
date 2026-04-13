@@ -10,7 +10,7 @@ from typing import Dict, Tuple
 
 def get_armor_defense(state: Dict) -> Tuple[int, str]:
     ea = state.get("equipped_armor")
-    if ea and ea.get("current_durability", 0) > 0:
+    if ea and isinstance(ea, dict) and ea.get("current_durability", 0) > 0:
         val  = ea.get("item", {}).get("stat_bonus", {}).get("defense", 0)
         name = ea.get("item", {}).get("name", "armor")
         return val, name

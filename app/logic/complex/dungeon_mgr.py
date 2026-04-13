@@ -8,7 +8,6 @@ Returns structured results. Never raises.
 from typing import Dict, Optional, Tuple
 
 from app.logic.simple.add_item    import add_item
-from app.logic.simple.set_location import set_location
 
 
 class DungeonMgr:

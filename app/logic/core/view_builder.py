@@ -9,7 +9,6 @@ from typing import Dict, List, Optional
 
 from app.logic.simple.get_buff_bonus       import get_buff_bonus
 from app.logic.simple.get_buff_summary     import get_buff_summary
-from app.logic.simple.get_effective_max_hp import get_effective_max_hp
 
 
 class ViewBuilder:
@@ -44,8 +43,8 @@ class ViewBuilder:
             item = self._reg.items.get(iid)
             items.append({"id": iid, "label": item["name"] if item else iid})
 
-        ew = player_state.get("equipped_weapon")
-        ea = player_state.get("equipped_armor")
+        ew = _as_equip_dict(player_state.get("equipped_weapon"))
+        ea = _as_equip_dict(player_state.get("equipped_armor"))
         lines = []
         if ew:
             dmg = ew.get("item", {}).get("stat_bonus", {}).get("damage", 0)
@@ -94,8 +93,8 @@ class ViewBuilder:
 
         equip_parts = []
         if player_state:
-            ew = player_state.get("equipped_weapon")
-            ea = player_state.get("equipped_armor")
+            ew = _as_equip_dict(player_state.get("equipped_weapon"))
+            ea = _as_equip_dict(player_state.get("equipped_armor"))
             if ew:
                 dmg = ew.get("item", {}).get("stat_bonus", {}).get("damage", 0)
                 equip_parts.append(
@@ -120,8 +119,8 @@ class ViewBuilder:
 
     def build_player_panel(self, player_state: Dict, player_mgr=None) -> Dict:
         max_hp_bonus = get_buff_bonus(player_state, "max_hp")
-        ew = player_state.get("equipped_weapon")
-        ea = player_state.get("equipped_armor")
+        ew = _as_equip_dict(player_state.get("equipped_weapon"))
+        ea = _as_equip_dict(player_state.get("equipped_armor"))
         equip_parts = []
         if ew:
             dmg = ew.get("item", {}).get("stat_bonus", {}).get("damage", 0)
@@ -143,6 +142,23 @@ class ViewBuilder:
 
 
 # ── Helpers ────────────────────────────────────────────────────────────
+
+def _as_equip_dict(value) -> Optional[Dict]:
+    """Normalise an equipment slot value to a dict or None.
+
+    The canonical format is a dict:
+        {"item_id": "...", "item": {...}, "current_durability": N, "max_durability": N}
+
+    Older save files or direct test assignments may store a plain item-ID
+    string in the slot. This helper treats those as an unresolvable equipped
+    item (returns None so the UI shows it as empty) rather than crashing.
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value
+    # Legacy / unexpected plain string — treat slot as empty
+    return None
 
 def _dur_bar(cur: int, mx: int, width: int = 10) -> str:
     if mx <= 0:

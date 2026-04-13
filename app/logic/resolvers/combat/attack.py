@@ -35,7 +35,7 @@ def resolve(ctx: ActionContext) -> ActionResult:
         ps, broke = decay_durability(ps, "equipped_weapon")
         if broke:
             name = ps.get("equipped_weapon", {}) or {}
-            msgs.append(f"⚠ Your weapon has broken!")
+            msgs.append("⚠ Your weapon has broken!")
             ps["equipped_weapon"] = None
 
     enemy_hp_remaining = enemy.get("_current_hp", enemy.get("hp", 10)) - total_dmg

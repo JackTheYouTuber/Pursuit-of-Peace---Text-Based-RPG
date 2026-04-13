@@ -1,5 +1,5 @@
 """resolve_equip — validate and execute an equip action."""
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 from app.logic.simple.equip_item import equip_item
 
 def resolve_equip(state: Dict, item_id: str, item_data: Dict) -> Tuple[Dict, str, bool]:

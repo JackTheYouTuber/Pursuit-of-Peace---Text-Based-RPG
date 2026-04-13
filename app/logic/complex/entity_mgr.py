@@ -10,8 +10,7 @@ The managers are separate controllers for separate entity types.
 Validates orders. Calls simples. Returns (new_state, message).
 Never raises. An impossible order returns unchanged state + reason.
 """
-import random
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from app.logic.simple.heal_entity       import heal_entity
 from app.logic.simple.damage_entity     import damage_entity

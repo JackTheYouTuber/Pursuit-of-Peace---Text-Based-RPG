@@ -3,6 +3,16 @@ from app.logic.action_types import ActionContext, ActionResult
 from app.logic.simple.remove_item import remove_item
 from app.logic.simple.add_gold    import add_gold
 
+
+def _equipped_id(slot_value) -> str | None:
+    """Return item_id from an equipment slot value (dict or legacy plain string)."""
+    if slot_value is None:
+        return None
+    if isinstance(slot_value, dict):
+        return slot_value.get("item_id")
+    return str(slot_value)   # legacy / direct-assignment fallback
+
+
 def resolve(ctx: ActionContext) -> ActionResult:
     ps      = dict(ctx.player_state)
     item_id = ctx.reference
@@ -12,8 +22,7 @@ def resolve(ctx: ActionContext) -> ActionResult:
     if item_id not in ps.get("inventory", []):
         return ActionResult(ps, ctx.dungeon_state, ["You don't have that item."])
     for slot in ("equipped_weapon", "equipped_armor"):
-        eq = ps.get(slot)
-        if eq and eq.get("item_id") == item_id:
+        if _equipped_id(ps.get(slot)) == item_id:
             return ActionResult(ps, ctx.dungeon_state,
                                 ["That item is equipped. Unequip it first."])
     item = reg.items.get(item_id) if reg else None

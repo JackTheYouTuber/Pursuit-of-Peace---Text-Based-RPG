@@ -15,15 +15,15 @@ from __future__ import annotations
 
 import json
 import logging
-import pathlib
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from app.logic.action_types     import ActionContext, ActionResult
 from app.logic.resolver_registry import ResolverRegistry
+from app.paths import data_path
 
 _log = logging.getLogger(__name__)
 
-_ACTIONS_DIR = pathlib.Path(__file__).parent.parent.parent / "data" / "actions"
+_ACTIONS_DIR = data_path("actions")
 
 # Minimal required fields in every action JSON
 _REQUIRED_FIELDS = {"id", "resolver"}

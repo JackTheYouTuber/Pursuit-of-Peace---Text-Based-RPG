@@ -16,7 +16,7 @@ def resolve(ctx: ActionContext) -> ActionResult:
     shop_inv = (ctx.location_state or {}).get("shop_inventory", [])
     if shop_inv and item_id not in shop_inv:
         return ActionResult(ps, ctx.dungeon_state,
-                            [f"That item is not available here."])
+                            ["That item is not available here."])
 
     item = reg.items.get(item_id) if reg else None
     if item is None:

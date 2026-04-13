@@ -5,7 +5,7 @@ The engine asks "what should I call for action_id X?".
 The router answers without executing anything.
 New action types are registered here — the engine never needs if/elif chains.
 """
-from typing import Callable, Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 
 _NAV = {
